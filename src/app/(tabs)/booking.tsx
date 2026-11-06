@@ -1,0 +1,336 @@
+import { useEffect, useMemo, useState } from "react";
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { WebView } from "react-native-webview";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
+const isWeb = (typeof navigator !== "undefined" && typeof document !== "undefined");
+let MapView: any = null;
+let Marker: any = null;
+if (!isWeb) {
+  try {
+    const m = require("react-native-maps");
+    MapView = m.default;
+    Marker = m.Marker;
+  } catch {
+    MapView = null;
+    Marker = null;
+  }
+}
+
+import {
+  BOOKING_HOSPITALS,
+  BOOKING_TIMES,
+  SPECIALTY_FILTERS,
+  type Hospital,
+} from "../../lib/data";
+import { Button, Card, Chip } from "../../components/ui";
+import { Field, Sheet } from "../../components/ui/Field";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Select } from "../../components/Select";
+import { useI18n } from "../../lib/i18n";
+import { useToast } from "../../components/ui/Toast";
+import { useSession } from "../../lib/session";
+
+export default function BookingScreen() {
+  const { showToast } = useToast();
+  const { t } = useI18n();
+  const { session } = useSession();
+  const patientId = session ? `${session.firstName} ${session.lastName}`.trim() : "—";
+
+  const [query, setQuery] = useState("");
+  const [department, setDepartment] = useState("");
+  const [ownershipFilter, setOwnershipFilter] = useState<"all" | "private" | "public">("all");
+  const [sort, setSort] = useState<"name" | "distance">("name");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  const [selected, setSelected] = useState<Hospital | null>(null);
+  const [booked, setBooked] = useState<Hospital | null>(null);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [bookingDate, setBookingDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
+  const [bookingTime, setBookingTime] = useState("10:30");
+  const [timeWindow, setTimeWindow] = useState("exact");
+  const [bookingDepartment, setBookingDepartment] = useState("");
+  const [bookingNote, setBookingNote] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visitMode, setVisitMode] = useState<"in_person" | "telehealth">("in_person");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const facilities = useMemo(() => {
+    let list = BOOKING_HOSPITALS;
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      list = list.filter((h) => h.name.toLowerCase().includes(q) || h.tags.some((t) => t.toLowerCase().includes(q)));
+    }
+    if (department) {
+      list = list.filter((h) => h.tags.includes(department));
+    }
+    if (ownershipFilter !== "all") {
+      list = list.filter((h) => (ownershipFilter === "private" ? h.tags.includes("Private") : !h.tags.includes("Private")));
+    }
+    return list;
+  }, [query, department, ownershipFilter]);
+
+  const openBooking = (facility: Hospital) => {
+    setSelected(facility);
+    setBooked(null);
+    setFormError("");
+    setVisitMode("in_person");
+    setBookingDepartment(facility.tags[0] ?? "");
+    setBookingOpen(true);
+  };
+
+  const closeBooking = () => {
+    setBookingOpen(false);
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+  };
+
+  const confirmBooking = () => {
+    setBooked(selected);
+    setSuccessOpen(true);
+    setBookingOpen(false);
+    setBookingDate("");
+    setBookingNote("");
+  };
+
+  const mapHtml = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>html,body,#map{height:100%;margin:0;padding:0;}</style></head><body><div id="map"></div>
+<script>
+var map=L.map('map').setView([9.03,38.75],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
+var pts=${JSON.stringify(facilities.map((h) => ({ id: h.id, name: h.name, lat: h.latitude, lng: h.longitude })))};
+pts.forEach(function(p){ L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name).on('click',function(){ if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(p.id); }); });
+</script></body></html>`;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+    const handler = (ev: MessageEvent) => {
+      const id = typeof ev.data === "string" ? ev.data : null;
+      if (!id) return;
+      const h = facilities.find((x) => x.id === id);
+      if (h) openBooking(h);
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [facilities]);
+
+  return (
+    <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+        {/* Search */}
+        <View className="bg-white p-4 rounded-2xl border border-[#DCE4E6] mb-3" style={{ zIndex: 1000, elevation: 10 }}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search hospitals, specialty, location…"
+            className="w-full px-3 py-2 text-sm rounded-xl border border-[#DCE4E6] text-[#18242B]"
+            placeholderTextColor="#94a3b8"
+          />
+          <View className="flex-row mt-3 gap-2">
+            <View className="flex-1">
+              <Select
+                value={department === "" ? "All specialties" : department}
+                onValueChange={(v) => setDepartment(v === "All specialties" ? "" : v)}
+                options={["All specialties", ...SPECIALTY_FILTERS.slice(1)]}
+              />
+            </View>
+            <View className="flex-1">
+              <Select
+                value={ownershipFilter === "all" ? t("booking.allFacilities") : ownershipFilter === "private" ? t("booking.private") : t("booking.public")}
+                onValueChange={(v) => setOwnershipFilter(v === t("booking.allFacilities") ? "all" : v === t("booking.private") ? "private" : "public")}
+                options={[t("booking.allFacilities"), t("booking.private"), t("booking.public")]}
+              />
+            </View>
+            <View className="flex-1">
+              <Select
+                value={sort === "name" ? t("booking.sortName") : t("booking.sortDistance")}
+                onValueChange={(v) => setSort(v === t("booking.sortName") ? "name" : "distance")}
+                options={[t("booking.sortName"), t("booking.sortDistance")]}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Map */}
+        <View style={{ height: 200, borderRadius: 16, overflow: "hidden", marginBottom: 12, borderWidth: 1, borderColor: "#DCE4E6", zIndex: 0, elevation: 0 }}>
+          {typeof document !== "undefined" ? (
+            <iframe title="Hospitals map" srcDoc={mapHtml} style={{ width: "100%", height: "100%", border: 0 }} />
+          ) : (
+            <WebView style={{ flex: 1 }} originWhitelist={["*"]} source={{ html: mapHtml }} onMessage={(e) => { const h = facilities.find((x) => x.id === e.nativeEvent.data); if (h) openBooking(h); }} />
+          )}
+        </View>
+
+        {/* Hospital Grid */}
+        {facilities.length === 0 ? (
+          <View className="items-center py-10">
+            <Text className="text-sm text-[#46545B]">{t("booking.noMatch")}</Text>
+          </View>
+        ) : (
+          facilities.map((h) => (
+            <Card key={h.id} className="mb-3">
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-row items-center gap-3 flex-1 min-w-0">
+                  <View className="w-10 h-10 rounded-xl bg-[#F4F7F7] border border-[#DCE4E6] items-center justify-center">
+                    <Text className="text-[#18242B] font-bold text-sm">{h.initials}</Text>
+                  </View>
+                  <View className="flex-1 min-w-0">
+                    <Text className="text-sm font-bold text-[#18242B]">{h.name}</Text>
+                    <Text className="text-xs text-[#25343D] mt-0.5">{h.tags.slice(0, 3).join(" · ")}</Text>
+                  </View>
+                </View>
+                <Pressable onPress={() => openBooking(h)} className="px-4 py-2 rounded-xl bg-black">
+                  <Text className="text-white text-xs font-semibold">{t("booking.bookNow")}</Text>
+                </Pressable>
+              </View>
+            </Card>
+          ))
+        )}
+      </ScrollView>
+
+      {/* Booking modal */}
+      <Sheet visible={bookingOpen} onClose={closeBooking} onDismiss={() => setSelected(null)} title={selected ? selected.name : ""} badge="Hospital Booking" subtitle={selected ? (
+        <View className="flex-row items-center gap-3">
+          <Text className="text-xs text-[#25343D]">{selected.location}</Text>
+          <Text className="text-xs text-[#25343D]">{selected.phone}</Text>
+        </View>
+      ) : undefined}>
+        {selected ? (
+          <View>
+            <View className="bg-[#F4F7F7] rounded-xl p-3 border border-[#F4F7F7] flex-row items-center justify-between mb-5">
+              <View className="flex-row items-center gap-2">
+                <View className="w-6 h-6 rounded-full bg-[#F4F7F7] items-center justify-center">
+                  <Text className="text-[#18242B] text-[10px] font-bold">P</Text>
+                </View>
+                <Text className="text-xs font-medium text-[#25343D]">{t("booking.patient", { id: patientId })}</Text>
+              </View>
+            </View>
+
+            <View className="mb-3">
+              <Text className="text-xs font-semibold text-[#25343D] mb-1">{t("booking.selectDate")}</Text>
+              <Pressable onPress={() => setShowDatePicker(true)} className="bg-[#F8FAFB] rounded-xl border border-[#DCE4E6] px-3.5 py-3">
+                <Text className="text-sm text-slate-900">{bookingDate || t("booking.selectDate")}</Text>
+              </Pressable>
+              {showDatePicker ? (
+                <DateTimePicker
+                  value={bookingDate ? new Date(bookingDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(e, d) => {
+                    setShowDatePicker(false);
+                    if (d) {
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const dd = String(d.getDate()).padStart(2, "0");
+                      setBookingDate(`${y}-${m}-${dd}`);
+                    }
+                  }}
+                />
+              ) : null}
+            </View>
+
+            <View className="mb-3">
+              <Text className="text-xs font-semibold text-[#25343D] mb-1">{t("booking.visitTime")}</Text>
+              <Pressable onPress={() => setShowTimePicker(true)} className="bg-[#F8FAFB] rounded-xl border border-[#DCE4E6] px-3.5 py-3">
+                <Text className="text-sm text-slate-900">{bookingTime || t("booking.visitTime")}</Text>
+              </Pressable>
+              {showTimePicker ? (
+                <DateTimePicker
+                  value={bookingTime ? new Date(`2020-01-01T${bookingTime}:00`) : new Date()}
+                  mode="time"
+                  display="default"
+                  onChange={(e, d) => {
+                    setShowTimePicker(false);
+                    if (d) {
+                      const h = String(d.getHours()).padStart(2, "0");
+                      const m = String(d.getMinutes()).padStart(2, "0");
+                      setBookingTime(`${h}:${m}`);
+                    }
+                  }}
+                />
+              ) : null}
+            </View>
+
+            <View className="mb-3" style={{ zIndex: 2000, elevation: 2000 }}>
+              <Text className="text-xs font-semibold text-[#25343D] mb-1">{t("booking.arrivalWindow")}</Text>
+              <Select
+                value={t(`booking.timeWindow.${timeWindow}` as any)}
+                onValueChange={(v) => {
+                  const key = (["exact", "morning", "afternoon", "evening"] as const).find((k) => t(`booking.timeWindow.${k}` as any) === v);
+                  if (key) setTimeWindow(key);
+                }}
+                options={["exact", "morning", "afternoon", "evening"].map((k) => t(`booking.timeWindow.${k}` as any))}
+              />
+            </View>
+
+            <View className="mb-4" style={{ zIndex: 1000, elevation: 1000 }}>
+              <Text className="text-xs font-semibold text-[#25343D] mb-1">{t("booking.departmentClinic")}</Text>
+              <Select
+                value={bookingDepartment ? bookingDepartment : t("booking.notSure")}
+                onValueChange={(v) => setBookingDepartment(v === t("booking.notSure") ? "" : v)}
+                options={[...selected.tags, t("booking.notSure")]}
+              />
+            </View>
+
+            <Field
+              label={t("booking.reasonLabel")}
+              value={bookingNote}
+              onChangeText={setBookingNote}
+              placeholder={t("booking.reasonPlaceholder")}
+              multiline
+            />
+
+            <Text className="text-[11px] text-[#46545B] mt-2 mb-4">
+              {t("booking.paymentNote")}
+            </Text>
+
+            <View className="pt-4 border-t border-[#F4F7F7] flex-row items-center justify-end gap-3">
+              <Pressable onPress={closeBooking} className="px-4 py-2 rounded-xl border border-[#DCE4E6]">
+                <Text className="text-xs font-semibold text-[#25343D]">{t("common.cancel")}</Text>
+              </Pressable>
+              <Pressable onPress={confirmBooking} className="px-5 py-2 rounded-xl bg-black active:bg-[#18242B]">
+                <Text className="text-white text-xs font-semibold">{t("booking.submit")}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+      </Sheet>
+
+      {/* Success modal */}
+      <Modal visible={successOpen} transparent animationType="none" onRequestClose={() => setSuccessOpen(false)} onDismiss={() => setBooked(null)}>
+        <Pressable className="flex-1 bg-[#18242B]/60 items-center justify-center p-4" onPress={() => setSuccessOpen(false)}>
+          <Pressable className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[#DCE4E6] items-center" onPress={() => {}}>
+            <View className="w-14 h-14 rounded-full bg-[#F4F7F7] items-center justify-center mb-4">
+              <Text className="text-[#18242B] text-2xl font-bold">✓</Text>
+            </View>
+            <Text className="text-lg font-bold text-[#18242B]">{t("booking.visitBooked")}</Text>
+            <Text className="text-xs text-[#25343D] mt-1 text-center">
+              {booked ? t("booking.savedAt", { name: booked.name }) : ""}
+            </Text>
+            <View className="bg-[#F4F7F7] rounded-xl p-4 my-4 w-full border border-[#F4F7F7]">
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-[#46545B] text-xs">{t("booking.hospital")}</Text>
+                <Text className="font-bold text-[#18242B] text-xs text-right">{booked?.name}</Text>
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-[#46545B] text-xs">{t("booking.reference")}</Text>
+                <Text className="font-mono font-bold text-[#18242B] text-xs">{(booked?.id ?? "").slice(0, 8).toUpperCase()}</Text>
+              </View>
+            </View>
+            <Pressable onPress={() => setSuccessOpen(false)} className="w-full py-2.5 rounded-xl bg-black active:bg-[#18242B]">
+              <Text className="text-white font-semibold text-xs text-center">{t("common.done")}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </SafeAreaView>
+  );
+}

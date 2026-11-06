@@ -1,0 +1,328 @@
+import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform } from "react-native";
+import { useState, useRef } from "react";
+import { captureRef } from "react-native-view-shot";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library/legacy";
+import * as FileSystem from "expo-file-system/legacy";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path, Circle } from "react-native-svg";
+import QRCode from "react-native-qrcode-svg";
+import { DEFAULT_PROFILE } from "../../lib/data";
+import { useSession } from "../../lib/session";
+import { useI18n } from "../../lib/i18n";
+import { useToast } from "../../components/ui/Toast";
+import { LinearGradient } from "expo-linear-gradient";
+
+export default function HealthCardScreen() {
+  const { session } = useSession();
+  const { showToast } = useToast();
+  const { t } = useI18n();
+  const [qrOpen, setQrOpen] = useState(false);
+  const [savingImage, setSavingImage] = useState(false);
+  const [savingPdf, setSavingPdf] = useState(false);
+  const cardRef = useRef<any>(null);
+
+  const busy = savingImage || savingPdf;
+
+  const fullName = session
+    ? `${session.firstName} ${session.middleName} ${session.lastName}`.replace(/\s+/g, " ").trim() || `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.middleName} ${DEFAULT_PROFILE.lastName}`
+    : `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.middleName} ${DEFAULT_PROFILE.lastName}`;
+  const userId = DEFAULT_PROFILE.patientId;
+  const phone = session?.phone || DEFAULT_PROFILE.phone;
+  const age = "32";
+  const address = DEFAULT_PROFILE.address;
+  const emergencyPhone = session?.phone || DEFAULT_PROFILE.phone;
+  const expiry = "Oct 2027";
+  const qrData = userId;
+
+  // Wait briefly so gradients, fonts, QR code and images are fully rendered
+  // before react-native-view-shot captures the card.
+  const captureCard = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    if (!cardRef.current) throw new Error(t("card.error.notAvailable"));
+    return captureRef(cardRef.current, { format: "png", quality: 1 });
+  };
+
+  const downloadImage = async () => {
+    if (busy) return;
+    setSavingImage(true);
+    try {
+      const uri = await captureCard();
+
+      if (Platform.OS === "web") {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Save health card image" });
+        }
+        showToast(t("common.done"), t("card.saved.ready"));
+        return;
+      }
+
+      const permission = await MediaLibrary.requestPermissionsAsync(true);
+      if (permission.status !== "granted") {
+        showToast("Permission needed", t("card.permissionMessage"));
+        return;
+      }
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      showToast(t("common.done"), t("card.saved.image"));
+    } catch (e: any) {
+      showToast(t("common.somethingWrong"), e?.message ?? t("card.error.saveImage"));
+    } finally {
+      setSavingImage(false);
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (busy) return;
+    setSavingPdf(true);
+    try {
+      const imageUri = await captureCard();
+
+      let base64: string;
+      if (Platform.OS === "web") {
+        const res = await fetch(imageUri);
+        const blob = await res.blob();
+        base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve((reader.result as string).split(",")[1] ?? "");
+          reader.onerror = () => reject(new Error(t("card.error.readImage")));
+          reader.readAsDataURL(blob);
+        });
+      } else {
+        base64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+
+      const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @page { margin: 0; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      img {
+        max-width: 90vw;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="data:image/png;base64,${base64}" />
+  </body>
+</html>`;
+
+      const result = await Print.printToFileAsync({ html });
+      const uri = result?.uri;
+      if (!uri) throw new Error(t("card.error.pdfGeneration"));
+
+      const response = await fetch(uri);
+      if (!response.ok) throw new Error(t("card.error.readPdf"));
+      const blob = await response.blob();
+      const base64Pdf = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.onerror = () => reject(new Error(t("card.error.encodePdf")));
+        reader.readAsDataURL(blob);
+      });
+
+      if (Platform.OS === "android") {
+        const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (!permission.granted) {
+          showToast(t("card.cancelled"), t("card.noFolder"));
+          return;
+        }
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          permission.directoryUri,
+          "health-card",
+          "application/pdf"
+        );
+        await FileSystem.writeAsStringAsync(fileUri, base64Pdf, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        showToast(t("common.done"), t("card.saved.pdfFolder"));
+      } else {
+        const dest = `${FileSystem.cacheDirectory}health-card.pdf`;
+        try {
+          await FileSystem.deleteAsync(dest, { idempotent: true });
+        } catch {
+          // ignore
+        }
+        await FileSystem.writeAsStringAsync(dest, base64Pdf, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(dest, { mimeType: "application/pdf", dialogTitle: "Save health card PDF" });
+        }
+        showToast(t("common.done"), t("card.saved.pdf"));
+      }
+    } catch (e: any) {
+      showToast(t("common.somethingWrong"), e?.message ?? t("card.error.savePdf"));
+    } finally {
+      setSavingPdf(false);
+    }
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-white" edges={["bottom"]}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+
+        {/* ===== Digital Health Card ===== */}
+        <View ref={cardRef} collapsable={false} style={{ marginTop: 48 }}>
+        <LinearGradient
+          colors={["#1e3a2e", "#1e4d43", "#000000"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: "100%", aspectRatio: 1.586, borderRadius: 16, overflow: "hidden" }}
+        >
+          {/* Sheen */}
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.05)" }} />
+          {/* Decorative rings */}
+          <View style={{ position: "absolute", top: -64, right: -64, width: 224, height: 224, opacity: 0.06 }}>
+            <Svg width={224} height={224} viewBox="0 0 200 200" fill="none">
+              <Circle cx={100} cy={100} r={40} stroke="white" strokeWidth={0.5} />
+              <Circle cx={100} cy={100} r={70} stroke="white" strokeWidth={0.5} />
+              <Circle cx={100} cy={100} r={98} stroke="white" strokeWidth={0.5} />
+            </Svg>
+          </View>
+
+          <View style={{ flex: 1, padding: 16, justifyContent: "space-between" }}>
+            {/* Top row: brand, name, id, contactless */}
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="flex-1 min-w-0">
+                <View className="flex-row items-center gap-2">
+                  <Image
+                    source={require("../../../assets/endod_logo.png")}
+                    style={{ width: 24, height: 24, tintColor: "#ffffff" }}
+                    resizeMode="contain"
+                    onLoadEnd={() => {}}
+                  />
+                  <Text className="font-extrabold tracking-tight text-white" style={{ fontSize: 22, lineHeight: 22 }}>Endod</Text>
+                </View>
+                <Text className="font-semibold text-[#94e0c0] uppercase tracking-widest mt-1" style={{ fontSize: 9 }}>
+                  {t("card.digitalId")}
+                </Text>
+                <Text className="font-bold text-white mt-3" style={{ fontSize: 16, fontFamily: "serif" }} numberOfLines={1}>
+                  {fullName}
+                </Text>
+                <Text className="font-semibold text-[#94e0c0] mt-0.5" style={{ fontSize: 10 }} numberOfLines={1}>
+                  {userId}
+                </Text>
+              </View>
+              {/* Contactless icon */}
+              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={1.8}>
+                <Path d="M8.5 8.5a5 5 0 0 1 0 7" strokeLinecap="round" />
+                <Path d="M12 6a8 8 0 0 1 0 12" strokeLinecap="round" />
+                <Path d="M15.5 3.5a11 11 0 0 1 0 17" strokeLinecap="round" />
+              </Svg>
+            </View>
+
+            {/* Bottom row: fields + QR */}
+            <View className="flex-row items-end justify-between gap-3">
+              <View className="flex-1" style={{ gap: 6 }}>
+                <View className="flex-row" style={{ gap: 16 }}>
+                  <View className="flex-1">
+                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Phone</Text>
+                    <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }} numberOfLines={1}>{phone}</Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Age</Text>
+                    <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }}>{age}</Text>
+                  </View>
+                </View>
+                <View>
+                  <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Address</Text>
+                  <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }} numberOfLines={2}>{address}</Text>
+                </View>
+                <View className="flex-row" style={{ gap: 16 }}>
+                  <View className="flex-1">
+                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>E/contact</Text>
+                    <Text className="font-medium text-white/75 mt-0.5" style={{ fontSize: 10 }} numberOfLines={1}>{emergencyPhone}</Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Expires</Text>
+                    <Text className="font-semibold text-[#6ee7b7] mt-0.5" style={{ fontSize: 11 }}>{expiry}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* QR */}
+              <View className="bg-white rounded-lg items-center justify-center" style={{ padding: 8 }}>
+                <QRCode value={qrData} size={80} />
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+        </View>
+
+        {/* Download options */}
+        <View className="mt-12">
+          <View className="flex-col gap-3">
+            <Pressable
+              onPress={downloadPdf}
+              disabled={busy}
+              className="w-full flex-row items-center justify-center gap-2 py-3 px-4 rounded-full active:opacity-90"
+              style={{ backgroundColor: "#176B65", opacity: busy ? 0.6 : 1 }}
+            >
+              {savingPdf ? <ActivityIndicator color="#ffffff" /> : (
+                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.5}>
+                  <Path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2M5 10l7 7 7-7M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              )}
+              <Text className="text-white font-medium text-sm">{savingPdf ? t("card.downloading.pdf") : t("card.download.pdf")}</Text>
+            </Pressable>
+            <Pressable
+              onPress={downloadImage}
+              disabled={busy}
+              className="w-full flex-row items-center justify-center gap-2 py-3 px-4 rounded-full active:opacity-90"
+              style={{ backgroundColor: "#176B65", opacity: busy ? 0.6 : 1 }}
+            >
+              {savingImage ? <ActivityIndicator color="#ffffff" /> : (
+                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.5}>
+                  <Path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2M5 10l7 7 7-7M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              )}
+              <Text className="text-white font-medium text-sm">{savingImage ? t("card.downloading.image") : t("card.download.image")}</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Show QR */}
+        <View className="mt-6 items-center">
+          <Pressable onPress={() => setQrOpen(true)}>
+            <Text className="text-xl font-semibold text-[#1e5852] underline">{t("card.showQr")}</Text>
+          </Pressable>
+        </View>
+
+        <Modal visible={qrOpen} transparent animationType="fade" onRequestClose={() => setQrOpen(false)}>
+          <Pressable onPress={() => setQrOpen(false)} style={{ flex: 1, backgroundColor: "white", alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <View style={{ width: "100%", maxWidth: 360, alignItems: "center" }} onStartShouldSetResponder={() => true}>
+              <Text className="text-sm font-semibold text-[#25343D] uppercase tracking-wider">{t("card.scanToVerify")}</Text>
+              <View style={{ marginVertical: 24, padding: 12, backgroundColor: "white", borderRadius: 12 }}>
+                <QRCode value={qrData} size={200} />
+              </View>
+              <Text className="text-2xl font-bold text-[#18242B]">{fullName}</Text>
+              <Text className="text-base font-semibold text-[#176B65] mt-1">{userId}</Text>
+              <Pressable onPress={() => setQrOpen(false)} className="mt-8 px-8 py-3 rounded-full border border-[#DCE4E6]">
+                <Text className="text-[#25343D] font-semibold">{t("card.close")}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
