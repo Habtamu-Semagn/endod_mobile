@@ -30,6 +30,8 @@ import { Select } from "../../components/Select";
 import { useI18n } from "../../lib/i18n";
 import { useToast } from "../../components/ui/Toast";
 import { useSession } from "../../lib/session";
+import * as Location from "expo-location";
+import { api } from "../../lib/api";
 
 export default function BookingScreen() {
   const { showToast } = useToast();
@@ -42,6 +44,43 @@ export default function BookingScreen() {
   const [ownershipFilter, setOwnershipFilter] = useState<"all" | "private" | "public">("all");
   const [sort, setSort] = useState<"name" | "distance">("name");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [hospitals, setHospitals] = useState<Hospital[]>(BOOKING_HOSPITALS);
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api<{ facilities: any[] }>("users/me/care/facilities");
+        const mapped: Hospital[] = (data?.facilities ?? []).map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          initials: (f.name || "").slice(0, 2).toUpperCase(),
+          website: f.website ?? "",
+          distance: f.distance_km != null ? `${f.distance_km} km` : "",
+          wait: "",
+          rating: "",
+          status: "Open",
+          tags: [...(f.departments ?? []), f.ownership === "private" ? "Private" : "Public"],
+          iconBg: "bg-[#F4F7F7]",
+          iconText: "text-[#18242B]",
+          latitude: f.latitude,
+          longitude: f.longitude,
+          location: [f.city, f.country].filter(Boolean).join(", "),
+          phone: f.phone ?? "",
+        }));
+        if (mapped.length) setHospitals(mapped);
+      } catch {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        const loc = await Location.getCurrentPositionAsync({});
+        setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      } catch {}
+    })();
+  }, []);
 
   const [selected, setSelected] = useState<Hospital | null>(null);
   const [booked, setBooked] = useState<Hospital | null>(null);
@@ -63,7 +102,7 @@ export default function BookingScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   const facilities = useMemo(() => {
-    let list = BOOKING_HOSPITALS;
+    let list = hospitals;
     if (query.trim()) {
       const q = query.trim().toLowerCase();
       list = list.filter((h) => h.name.toLowerCase().includes(q) || h.tags.some((t) => t.toLowerCase().includes(q)));
@@ -75,7 +114,7 @@ export default function BookingScreen() {
       list = list.filter((h) => (ownershipFilter === "private" ? h.tags.includes("Private") : !h.tags.includes("Private")));
     }
     return list;
-  }, [query, department, ownershipFilter]);
+  }, [query, department, ownershipFilter, hospitals]);
 
   const openBooking = (facility: Hospital) => {
     setSelected(facility);
@@ -92,12 +131,37 @@ export default function BookingScreen() {
     setShowTimePicker(false);
   };
 
-  const confirmBooking = () => {
-    setBooked(selected);
-    setSuccessOpen(true);
-    setBookingOpen(false);
-    setBookingDate("");
-    setBookingNote("");
+  const confirmBooking = async () => {
+    if (!selected) return;
+    const scheduledAt = `${bookingDate}T${bookingTime}:00`;
+    if (new Date(scheduledAt) <= new Date()) {
+      setFormError("Please choose a future time.");
+      return;
+    }
+    setIsSubmitting(true);
+    setFormError("");
+    try {
+      const result = await api<{ appointment: any }>("users/me/appointments", {
+        method: "POST",
+        body: {
+          scheduled_at: new Date(scheduledAt).toISOString(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          visit_mode: visitMode,
+          facility_id: selected.id,
+          department: bookingDepartment || null,
+          time_window: timeWindow,
+          notes: bookingNote.trim() || null,
+        },
+      });
+      setBooked(result?.appointment ?? selected);
+      setSuccessOpen(true);
+      setBookingOpen(false);
+      setBookingNote("");
+    } catch (e: any) {
+      setFormError(e?.message ?? "Booking failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const mapHtml = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -108,7 +172,7 @@ export default function BookingScreen() {
 var map=L.map('map').setView([9.03,38.75],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
 var pts=${JSON.stringify(facilities.map((h) => ({ id: h.id, name: h.name, lat: h.latitude, lng: h.longitude })))};
-pts.forEach(function(p){ L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name).on('click',function(){ if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(p.id); }); });
+pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',function(){ if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(p.id); }); });
 </script></body></html>`;
 
   useEffect(() => {
@@ -293,6 +357,7 @@ pts.forEach(function(p){ L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name).on
             </Text>
 
             <View className="pt-4 border-t border-[#F4F7F7] flex-row items-center justify-end gap-3">
+              {formError ? <Text className="text-xs text-rose-500 flex-1">{formError}</Text> : null}
               <Pressable onPress={closeBooking} className="px-4 py-2 rounded-xl border border-[#DCE4E6]">
                 <Text className="text-xs font-semibold text-[#25343D]">{t("common.cancel")}</Text>
               </Pressable>

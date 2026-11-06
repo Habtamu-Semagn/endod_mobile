@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Switch, Text, TextInput, View, Alert } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { api, ApiError, passwordProblem } from "../../lib/api";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { api, ApiError, passwordProblem, setAuthToken } from "../../lib/api";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { Bone, FieldBones, Skeleton } from "../../components/skeleton";
 import { Select } from "../../components/Select";
@@ -35,6 +36,9 @@ type HealthProfile = {
   allergies: string[];
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
+  age_range: string | null;
+  date_of_birth: string | null;
+  age_years: number | null;
 };
 
 type Props = {
@@ -80,7 +84,7 @@ const STRENGTH_LABEL_KEYS: TranslationKey[] = [
 ];
 const STRENGTH_COLORS = ["text-[#46545B]", "text-[#B42318]", "text-[#B7791F]", "text-[#18242B]", "text-[#18242B]"];
 
-export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: Props) {
+export default function SettingsScreen({ onToast = (title: string, message?: string) => Alert.alert(title, message), onProfileChange = () => {}, hideTitle }: Props) {
   const { t } = useI18n();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -88,6 +92,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   const [busy, setBusy] = useState<string | null>(null);
 
   const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneStep, setPhoneStep] = useState<"idle" | "number" | "code">("idle");
@@ -107,12 +112,14 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   const [health, setHealth] = useState<HealthProfile | null>(null);
   const [healthError, setHealthError] = useState("");
   const [cardVisible, setCardVisible] = useState(false);
-  const [age, setAge] = useState("32");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [showDob, setShowDob] = useState(false);
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
 
   const applyPersonal = useCallback((p: Profile) => {
     setFirstName(p.first_name ?? "");
+    setMiddleName(p.middle_name ?? "");
     setLastName(p.last_name ?? "");
     setEmail(p.email ?? "");
   }, []);
@@ -130,11 +137,17 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
     applyLocation(p);
   }, [applyPersonal, applyLocation]);
 
-  const applyHealth = useCallback((h: HealthProfile) => {
+  const applyHealth = (h: HealthProfile) => {
     setHealth(h);
     setEmergencyName(h.emergency_contact_name ?? "");
     setEmergencyPhone(h.emergency_contact_phone ?? "");
-  }, []);
+    if (h.date_of_birth) setDateOfBirth(h.date_of_birth);
+    else if (h.age_years != null) {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - h.age_years);
+      setDateOfBirth(d.toISOString().slice(0, 10));
+    }
+  };
 
   const loadHealth = useCallback(async () => {
     try {
@@ -152,7 +165,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
       .then((p) => {
         if (cancelled) return;
         applyProfile(p);
-        if (p.consent?.treatment_processing) void loadHealth();
+        if (p.consent?.treatment_processing) void loadHealth().catch(() => {});
       })
       .catch((error) => {
         if (!cancelled) setLoadError(message(error, t("settings.error.load")));
@@ -161,11 +174,15 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   }, [applyProfile, loadHealth, t]);
 
   const saveProfile = async () => {
+    if (!firstName.trim() && !middleName.trim() && !lastName.trim() && !email.trim()) {
+      onToast("Missing input", "Please fill the input element you want to update.");
+      return;
+    }
     setBusy("profile");
     try {
       const updated = await api<Profile>("users/me", {
         method: "PATCH",
-        body: { first_name: firstName.trim(), last_name: lastName.trim(), email: email.trim() || null },
+        body: { first_name: firstName.trim(), middle_name: middleName.trim() || null, last_name: lastName.trim(), email: email.trim() || null },
       });
       setProfile(updated);
       applyPersonal(updated);
@@ -180,6 +197,10 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   };
 
   const saveLocation = async () => {
+    if (!address.trim() && !city.trim() && !region.trim() && !postalCode.trim()) {
+      onToast("Missing input", "Please fill the input element you want to update.");
+      return;
+    }
     setBusy("location");
     try {
       const updated = await api<Profile>("users/me", {
@@ -211,6 +232,10 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   };
 
   const sendPhoneCode = async () => {
+    if (!newPhone.trim()) {
+      onToast("Missing input", "Please fill the input element you want to update.");
+      return;
+    }
     setBusy("phone");
     setPhoneError("");
     try {
@@ -224,6 +249,10 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   };
 
   const confirmPhone = async () => {
+    if (phoneCode.length !== 6) {
+      onToast("Missing input", "Please fill the input element you want to update.");
+      return;
+    }
     setBusy("phone");
     setPhoneError("");
     try {
@@ -248,6 +277,15 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
     }
     setBusy("password");
     try {
+      const result = await api<{ changed: boolean; access_token?: string }>("auth/password", {
+        method: "POST",
+        body: {
+          current_password: currentPassword,
+          new_password: newPassword,
+          new_password_confirmation: confirmPassword,
+        },
+      });
+      if (result?.access_token) setAuthToken(result.access_token);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -272,7 +310,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
         if (value) {
           await loadHealth();
         } else {
-          applyHealth({ blood_type: null, allergies: [], emergency_contact_name: null, emergency_contact_phone: null });
+          applyHealth({ blood_type: null, allergies: [], emergency_contact_name: null, emergency_contact_phone: null, age_range: null, date_of_birth: null, age_years: null });
           setHealth(null);
           onToast(t("settings.toast.consentWithdrawnTitle"), t("settings.toast.consentWithdrawn"));
         }
@@ -302,6 +340,10 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   };
 
   const saveCard = async () => {
+    if (!dateOfBirth.trim() && !emergencyName.trim() && !emergencyPhone.trim()) {
+      onToast("Missing input", "Please fill the input element you want to update.");
+      return;
+    }
     setBusy("card");
     try {
       const updated = await api<HealthProfile>("users/me/health-profile", {
@@ -311,11 +353,13 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
           allergies: [],
           emergency_contact_name: emergencyName.trim() || null,
           emergency_contact_phone: emergencyPhone.trim() || null,
+          date_of_birth: dateOfBirth.trim() || null,
         },
       });
       applyHealth(updated);
       invalidateHealthCard();
       onToast(t("settings.toast.cardUpdatedTitle"), t("settings.toast.cardUpdated"));
+      router.push("/(tabs)/card");
     } catch (error) {
       onToast(t("common.couldNotSave"), message(error, t("settings.toast.checkDetails")));
     } finally {
@@ -326,7 +370,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
   if (!profile) {
     return (
       <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           {loadError ? <Text className="text-sm text-[#B42318]">{loadError}</Text> : (
             <Skeleton className="gap-6" label={t("settings.loading")}>
               {[3, 2, 2].map((fields, section) => (
@@ -364,7 +408,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
 
   return (
     <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
         <View className="gap-6 py-6">
           <View className="bg-white rounded-2xl border border-[#DCE4E6] p-5 gap-6">
             <View className="flex-col gap-2 border-b border-[#F4F7F7] pb-4">
@@ -376,6 +420,10 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
               <View>
                 <Text className="text-xs font-semibold uppercase tracking-wider text-[#25343D] mb-1.5">{t("settings.personal.firstName")}</Text>
                 <TextInput value={firstName} onChangeText={setFirstName} className="w-full text-sm rounded-xl border border-[#DCE4E6] py-2.5 px-3.5 text-[#18242B]" />
+              </View>
+              <View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-[#25343D] mb-1.5">{t("settings.personal.middleName")}</Text>
+                <TextInput value={middleName} onChangeText={setMiddleName} className="w-full text-sm rounded-xl border border-[#DCE4E6] py-2.5 px-3.5 text-[#18242B]" />
               </View>
               <View>
                 <Text className="text-xs font-semibold uppercase tracking-wider text-[#25343D] mb-1.5">{t("settings.personal.lastName")}</Text>
@@ -419,7 +467,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
                 )}
               </View>
             </View>
-            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#F4F7F7]" style={{ zIndex: 0 }}>
+            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#F4F7F7]">
               <Pressable onPress={saveProfile} disabled={busy !== null} className="px-5 py-2.5 bg-black rounded-xl">
                 <Text className="text-white font-semibold text-sm">{t("settings.personal.saveChanges")}</Text>
               </Pressable>
@@ -427,7 +475,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
           </View>
 
           {/* Location */}
-          <View className="bg-white rounded-2xl border border-[#DCE4E6] p-5 gap-6" style={{ zIndex: 100 }}>
+          <View className="bg-white rounded-2xl border border-[#DCE4E6] p-5 gap-6">
             <View className="border-b border-[#F4F7F7] pb-4">
               <Text className="text-lg font-bold text-[#18242B]">{t("settings.location.title")}</Text>
             </View>
@@ -461,7 +509,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
                 <Text className="text-[11px] text-[#46545B] mt-1 text-left">{t("settings.location.within", { km: RADIUS_MIN_KM })} – {t("settings.location.within", { km: RADIUS_MAX_KM })}</Text>
               </View>
             </View>
-            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#F4F7F7]" style={{ zIndex: 0 }}>
+            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#F4F7F7]">
               <Pressable onPress={saveLocation} disabled={busy !== null} className="px-5 py-2.5 bg-black rounded-xl">
                 <Text className="text-white font-semibold text-sm">{t("settings.location.update")}</Text>
               </Pressable>
@@ -567,7 +615,7 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
                       </View>
                       <View className="flex-1">
                         <Text className="text-[7px] font-semibold text-[#94a3a8] uppercase tracking-wider">{t("settings.card.age")}</Text>
-                        <Text className="text-[9px] font-semibold text-white mt-0.5">{age || "—"}</Text>
+                        <Text className="text-[9px] font-semibold text-white mt-0.5">{dateOfBirth ? (() => { const b=new Date(dateOfBirth); const n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--; return a; })() : "—"}</Text>
                       </View>
                     </View>
                     <View>
@@ -596,18 +644,21 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
             )}
             <View className="gap-5">
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#25343D] mb-1.5">{t("settings.card.ageLabel")}</Text>
-                <View className="relative w-full">
-                  <TextInput value={age} onChangeText={setAge} keyboardType="numeric" className="w-full text-sm rounded-xl border border-[#DCE4E6] py-2.5 px-3.5 pr-10 text-[#18242B]" />
-                  <View className="absolute right-2 top-0 bottom-0 justify-center gap-0.5">
-                    <Pressable onPress={() => setAge((a) => String((parseInt(a) || 0) + 1))}>
-                      <Text className="text-[#25343D] text-xs font-bold">▲</Text>
-                    </Pressable>
-                    <Pressable onPress={() => setAge((a) => String(Math.max(0, (parseInt(a) || 0) - 1)))}>
-                      <Text className="text-[#25343D] text-xs font-bold">▼</Text>
-                    </Pressable>
-                  </View>
-                </View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-[#25343D] mb-1.5">{t("settings.card.dateOfBirth")}</Text>
+                <Pressable onPress={() => setShowDob(true)} className="w-full text-sm rounded-xl border border-[#DCE4E6] py-2.5 px-3.5 text-[#18242B]">
+                  <Text>{dateOfBirth || "YYYY-MM-DD"}</Text>
+                </Pressable>
+                {showDob && (
+                  <DateTimePicker
+                    value={dateOfBirth ? new Date(dateOfBirth) : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(e, d) => {
+                      setShowDob(false);
+                      if (d) setDateOfBirth(d.toISOString().slice(0, 10));
+                    }}
+                  />
+                )}
               </View>
               <View>
                 <Text className="text-xs font-semibold uppercase tracking-wider text-[#25343D] mb-1.5">{t("settings.card.addressLabel")}</Text>
@@ -621,8 +672,8 @@ export default function SettingsScreen({ onToast, onProfileChange, hideTitle }: 
                 <Text className="text-xs font-semibold uppercase tracking-wider text-[#25343D] mb-1.5">{t("settings.card.emergencyPhone")}</Text>
                 <TextInput value={emergencyPhone} onChangeText={setEmergencyPhone} className="w-full text-sm rounded-xl border border-[#DCE4E6] py-2.5 px-3.5 text-[#18242B]" />
               </View>
-              <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#F4F7F7]" style={{ zIndex: 0 }}>
-                <Pressable onPress={saveCard} disabled={busy !== null} className="px-5 py-2.5 bg-black rounded-xl">
+              <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#F4F7F7]">
+                <Pressable onPress={() => void saveCard()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} className="px-5 py-2.5 bg-black rounded-xl">
                   <Text className="text-white font-semibold text-sm">{t("settings.card.save")}</Text>
                 </Pressable>
               </View>

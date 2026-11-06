@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../components/ui";
+import { api } from "../lib/api";
 
 const RESEND_COOLDOWN = 60;
 
@@ -20,6 +21,7 @@ export default function VerifyOtpScreen() {
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
+  const [submitting, setSubmitting] = useState(false);
   const inputs = useRef<any[]>([]);
 
   useEffect(() => {
@@ -41,13 +43,21 @@ export default function VerifyOtpScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (digits.some((d) => !d)) {
       setError("Please enter all 6 digits.");
       return;
     }
-    // Mock verification — any 6 digits accepted.
-    router.replace(`/set-password?phone=${encodeURIComponent(phone)}`);
+    setSubmitting(true);
+    try {
+      const data = await api("/auth/phone/verify", { method: "POST", body: { phone: phone.trim(), code: digits.join("") } });
+      const token = data?.verification_token ?? "";
+      router.replace(`/set-password?phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(token)}`);
+    } catch (e: any) {
+      setError(e?.message ?? "Verification failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const maskPhone = (raw: string) => {
@@ -106,7 +116,7 @@ export default function VerifyOtpScreen() {
             <Text className="text-xs text-rose-500 text-center mb-3">{error}</Text>
           ) : null}
 
-          <Button title="Verify" size="lg" onPress={handleVerify} />
+          <Button title="Verify" size="lg" loading={submitting} onPress={handleVerify} />
 
           <View className="items-center mt-5">
             {cooldown > 0 ? (

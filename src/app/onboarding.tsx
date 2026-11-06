@@ -6,6 +6,7 @@ import Svg, { Path } from "react-native-svg";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
+import { api, getAuthToken } from "../lib/api";
 
 const LOOKING_FOR = [
   { id: "symptoms", label: "Understand my symptoms", hint: "Talk to Endod AI about how you're feeling" },
@@ -53,13 +54,42 @@ export default function OnboardingScreen() {
   const [healthConsent, setHealthConsent] = useState(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const goNext = () => {
+  const goNext = async () => {
     if (step < 4) {
       setStep((s) => s + 1);
-    } else {
-      completeOnboarding({ firstName, middleName, lastName, lookingFor, sex, ageRange });
-      router.replace("/(tabs)");
+      return;
     }
+    // Save to backend
+    try {
+      if (lookingFor.length) {
+        await api("users/me/preferences", { method: "PATCH", body: { onboarding_goals: lookingFor } });
+      }
+      if (healthConsent) {
+        await api("users/me/consent", { method: "PATCH", body: { treatment_processing: true } });
+        await api("users/me/health-profile", {
+          method: "PATCH",
+          body: {
+            sex,
+            age_range: ageRange,
+            ...(bloodType ? { blood_type: bloodType } : {}),
+            ...(allergies.trim() ? { allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean) } : {}),
+            ...(emergencyName.trim() ? { emergency_contact_name: emergencyName.trim() } : {}),
+          },
+        });
+      }
+      await api("users/me", {
+        method: "PATCH",
+        body: {
+          first_name: firstName.trim(),
+          middle_name: middleName.trim() || null,
+          last_name: lastName.trim(),
+        },
+      });
+    } catch (e) {
+      // ignore
+    }
+    completeOnboarding({ firstName, middleName, lastName, lookingFor, sex, ageRange }, getAuthToken());
+    router.replace("/(tabs)");
   };
 
   const toggleLookingFor = (id: string) => {

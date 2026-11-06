@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
 import { Svg, Path } from "react-native-svg";
 import { api, ApiError } from "../../lib/api";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
@@ -61,7 +62,7 @@ function localDateInput(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-export default function AppointmentScreen({ highlightTarget, onToast, onBook, hideTitle }: Props) {
+export default function AppointmentScreen({ highlightTarget, onToast = () => {}, onBook = () => {}, hideTitle }: Props) {
   const { t, locale } = useI18n();
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -116,6 +117,12 @@ export default function AppointmentScreen({ highlightTarget, onToast, onBook, hi
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch
     void load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
@@ -367,7 +374,7 @@ export default function AppointmentScreen({ highlightTarget, onToast, onBook, hi
   const typeLabel = (v: string) => v === "all" ? t("appointments.allTypes") : v === "in_person" ? t("appointments.inPerson") : t("appointments.videoTelehealth");
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
+    <View className="flex-1 bg-app">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         <View className="gap-6 pb-6">
           {/* Title */}
@@ -524,7 +531,7 @@ export default function AppointmentScreen({ highlightTarget, onToast, onBook, hi
 
         {/* Reschedule Modal */}
         {modal && (
-          <View className="absolute inset-0 bg-[#18242B]/60 items-center justify-center p-4 z-50">
+          <View className="absolute inset-0 bg-[#18242B]/60 items-center justify-center p-4" style={{ zIndex: 2000, elevation: 2000 }}>
             <View className="bg-white rounded-3xl w-full p-6 border border-[#DCE4E6] max-h-[95%]">
               <View className="flex-row items-center justify-between pb-3 border-b border-[#F4F7F7]">
                 <View>
@@ -598,8 +605,11 @@ export default function AppointmentScreen({ highlightTarget, onToast, onBook, hi
                     <View style={{ zIndex: 1000, elevation: 1000 }}>
                       <Text className="text-xs font-bold text-[#25343D] uppercase tracking-wider mb-1.5">{t("appointments.modal.arrivalWindow")}</Text>
                       <Select
-                        value={formWindow}
-                        onValueChange={(v) => setFormWindow(v as Appointment["time_window"])}
+                        value={t(TIME_WINDOWS.find((w) => w.value === formWindow)?.labelKey ?? TIME_WINDOWS[0].labelKey)}
+                        onValueChange={(v) => {
+                          const w = TIME_WINDOWS.find((x) => t(x.labelKey) === v);
+                          if (w) setFormWindow(w.value);
+                        }}
                         options={TIME_WINDOWS.map((w) => t(w.labelKey))}
                         direction="up"
                       />
@@ -624,6 +634,6 @@ export default function AppointmentScreen({ highlightTarget, onToast, onBook, hi
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

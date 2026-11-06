@@ -12,6 +12,7 @@ import { Link, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
+import { api } from "../lib/api";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function SignupScreen() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
     if (!phone.trim()) {
       setError("Please enter your phone number.");
@@ -31,11 +32,14 @@ export default function SignupScreen() {
       return;
     }
     setSubmitting(true);
-    // Mock auth — real app calls /api/auth/send-otp.
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await api("/auth/phone/request-code", { method: "POST", body: { phone: phone.trim() } });
       router.push(`/verify-otp?phone=${encodeURIComponent(phone.trim())}`);
-    }, 600);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to send code");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -72,7 +76,7 @@ export default function SignupScreen() {
               label="Phone Number"
               value={phone}
               onChangeText={setPhone}
-              placeholder="+1 (617) 555-0198"
+              placeholder="0987452325"
               keyboardType="phone-pad"
             />
 

@@ -1,5 +1,5 @@
 import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform } from "react-native";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { captureRef } from "react-native-view-shot";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -9,8 +9,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Circle } from "react-native-svg";
 import QRCode from "react-native-qrcode-svg";
 import { DEFAULT_PROFILE } from "../../lib/data";
+import { api } from "../../lib/api";
 import { useSession } from "../../lib/session";
 import { useI18n } from "../../lib/i18n";
+import { useFocusEffect } from "expo-router";
 import { useToast } from "../../components/ui/Toast";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -25,19 +27,41 @@ export default function HealthCardScreen() {
 
   const busy = savingImage || savingPdf;
 
-  const fullName = session
-    ? `${session.firstName} ${session.middleName} ${session.lastName}`.replace(/\s+/g, " ").trim() || `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.middleName} ${DEFAULT_PROFILE.lastName}`
-    : `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.middleName} ${DEFAULT_PROFILE.lastName}`;
-  const userId = DEFAULT_PROFILE.patientId;
-  const phone = session?.phone || DEFAULT_PROFILE.phone;
-  const age = "32";
-  const address = DEFAULT_PROFILE.address;
-  const emergencyPhone = session?.phone || DEFAULT_PROFILE.phone;
+  const [profile, setProfile] = useState<any>(null);
+  const [healthProfile, setHealthProfile] = useState<any>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          const p = await api("users/me");
+          setProfile(p);
+        } catch {}
+        try {
+          const h = await api("users/me/health-profile");
+          setHealthProfile(h);
+        } catch {}
+      })();
+    }, [])
+  );
+
+  const fullName = profile
+    ? `${profile.first_name ?? ""} ${profile.middle_name ?? ""} ${profile.last_name ?? ""}`.replace(/\s+/g, " ").trim() || (session
+        ? `${session.firstName} ${session.middleName} ${session.lastName}`.replace(/\s+/g, " ").trim()
+        : `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.middleName} ${DEFAULT_PROFILE.lastName}`)
+    : (session
+        ? `${session.firstName} ${session.middleName} ${session.lastName}`.replace(/\s+/g, " ").trim() || `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.middleName} ${DEFAULT_PROFILE.lastName}`
+        : `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.middleName} ${DEFAULT_PROFILE.lastName}`);
+  const userId = profile?.dedan_user_id ?? DEFAULT_PROFILE.patientId;
+  const phone = profile?.phone ?? session?.phone ?? DEFAULT_PROFILE.phone;
+  const address = profile?.address_line ?? DEFAULT_PROFILE.address;
+  const emergencyPhone = healthProfile?.emergency_contact_phone ?? phone;
+
+  const age = healthProfile?.age_years != null ? String(healthProfile.age_years) : (healthProfile?.age_range ?? "—");
   const expiry = "Oct 2027";
   const qrData = userId;
 
   // Wait briefly so gradients, fonts, QR code and images are fully rendered
-  // before react-native-view-shot captures the card.
   const captureCard = async () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     if (!cardRef.current) throw new Error(t("card.error.notAvailable"));

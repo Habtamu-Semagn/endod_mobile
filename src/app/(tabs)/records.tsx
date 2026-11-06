@@ -28,7 +28,7 @@ type Props = {
   hideTitle?: boolean;
 };
 
-export default function RecordsScreen({ highlightTarget, onToast, onOpenSettings, onBook, recordId, onBack, onSelectRecord, hideTitle }: Props) {
+export default function RecordsScreen({ highlightTarget, onToast = () => {}, onOpenSettings = () => {}, onBook = () => {}, recordId, onBack, onSelectRecord, hideTitle }: Props) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [data, setData] = useState<HistoryResponse | null>(null);

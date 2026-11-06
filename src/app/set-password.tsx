@@ -13,18 +13,21 @@ import Svg, { Path } from "react-native-svg";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
+import { api } from "../lib/api";
+import { setAuthToken } from "../lib/api";
 
 const STRENGTH_LABELS = ["Too short", "Weak", "Fair", "Strong", "Very strong"];
 const STRENGTH_BAR_COLORS = ["bg-slate-200", "bg-rose-400", "bg-amber-400", "bg-emerald-500", "bg-emerald-600"];
 
 export default function SetPasswordScreen() {
   const router = useRouter();
-  const { phone = "" } = useLocalSearchParams<{ phone?: string }>();
+  const { phone = "", token = "" } = useLocalSearchParams<{ phone?: string; token?: string }>();
   const { beginSignUp } = useSession();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const strength = useMemo(() => {
     let score = 0;
@@ -35,7 +38,7 @@ export default function SetPasswordScreen() {
     return score;
   }, [password]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
@@ -45,8 +48,30 @@ export default function SetPasswordScreen() {
       setError("Passwords don't match.");
       return;
     }
-    beginSignUp(phone);
-    router.replace("/onboarding");
+    setSubmitting(true);
+    try {
+      const data = await api("/auth/phone/complete", {
+        method: "POST",
+        body: {
+          verification_token: token,
+          password,
+          password_confirmation: confirm,
+        },
+      });
+      const accessToken = data?.access_token ?? null;
+      const created = data?.created ?? true;
+      if (accessToken) setAuthToken(accessToken);
+      if (created) {
+        beginSignUp(phone);
+        router.replace("/onboarding");
+      } else {
+        router.replace("/login");
+      }
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to set password");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -115,7 +140,7 @@ export default function SetPasswordScreen() {
 
             {error ? <Text className="text-xs text-rose-500 mb-3 -mt-1">{error}</Text> : null}
 
-            <Button title="Save & Continue" size="lg" onPress={handleSubmit} />
+            <Button title="Save & Continue" size="lg" loading={submitting} onPress={handleSubmit} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

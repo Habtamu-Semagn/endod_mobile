@@ -5,7 +5,7 @@ import { Svg, Path } from "react-native-svg";
 import { api, ApiError } from "../../lib/api";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { Bone, RowBones, Skeleton } from "../../components/skeleton";
-import { AppHeader } from "../../components/AppHeader";
+import { router } from "expo-router";
 
 type Category = "appointments" | "records" | "messages" | "security";
 
@@ -81,15 +81,18 @@ function destination(item: InboxItem): { nav: string; target: string | null } | 
 
 function timeAgo(iso: string, locale: string): string {
   const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
-  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-  const steps: [Intl.RelativeTimeFormatUnit, number][] = [["day", 86400], ["hour", 3600], ["minute", 60]];
-  for (const [unit, size] of steps) {
-    if (Math.abs(seconds) >= size) return format.format(Math.round(seconds / size), unit);
-  }
-  return format.format(0, "minute");
+  const abs = Math.abs(seconds);
+  if (abs < 60) return "just now";
+  if (abs < 3600) return `${Math.round(abs / 60)}m`;
+  if (abs < 86400) return `${Math.round(abs / 3600)}h`;
+  return `${Math.round(abs / 86400)}d`;
 }
 
-export default function NotificationsScreen({ onOpen, onToast, hideTitle }: Props) {
+export default function NotificationsScreen({ onOpen = (nav: string) => {
+  if (nav === "appointment") router.push("/(tabs)/appointment");
+  else if (nav === "bills") router.push("/(tabs)/bills");
+  else if (nav === "followup") router.push("/(tabs)/records");
+}, onToast = () => {}, hideTitle }: Props) {
   const { t, locale } = useI18n();
   const [filter, setFilter] = useState<"all" | Category>("all");
   const [items, setItems] = useState<InboxItem[] | null>(null);

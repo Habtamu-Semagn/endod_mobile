@@ -14,6 +14,7 @@ import Svg, { Path } from "react-native-svg";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
+import { api } from "../lib/api";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
     if (!phone.trim()) {
       setError("Please enter your phone number.");
@@ -35,12 +36,17 @@ export default function LoginScreen() {
       return;
     }
     setSubmitting(true);
-    // Mock auth — real app calls the /api/auth/login endpoint.
-    setTimeout(() => {
+    try {
+      const data = await api("/auth/login", { method: "POST", body: { identifier: phone.trim(), password } });
+      const token = data?.access_token ?? null;
+      signIn(phone.trim(), token);
+      const onboarded = data?.profile?.onboarding_complete;
+      router.replace(onboarded ? "/(tabs)" : "/onboarding");
+    } catch (e: any) {
+      setError(e?.message ?? "Login failed");
+    } finally {
       setSubmitting(false);
-      signIn(phone.trim());
-      router.replace("/(tabs)");
-    }, 600);
+    }
   };
 
   return (
@@ -79,7 +85,7 @@ export default function LoginScreen() {
               label="Phone Number"
               value={phone}
               onChangeText={setPhone}
-              placeholder="+1 (617) 555-0198"
+              placeholder="0987452325"
               keyboardType="phone-pad"
             />
             <Field
