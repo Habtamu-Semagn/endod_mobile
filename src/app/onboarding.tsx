@@ -121,7 +121,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#E5E7EB]">
+    <SafeAreaView className="flex-1 bg-brand-bg">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 pt-4 pb-8">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-5">
@@ -135,7 +135,7 @@ export default function OnboardingScreen() {
           ) : (
             <View className="w-10" />
           )}
-          <Text className="text-xs font-semibold text-[#25343D]">
+          <Text className="text-xs font-semibold text-brand-muted">
             Step {step + 1} of 5
           </Text>
           <View className="w-10" />
@@ -151,7 +151,7 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <Text className="text-2xl font-bold text-[#18242B] mb-6">{STEP_TITLES[step]}</Text>
+        <Text className="text-2xl font-bold text-brand-heading mb-6">{STEP_TITLES[step]}</Text>
 
         {/* Step 0 — name */}
         {step === 0 ? (
@@ -297,7 +297,7 @@ function ChevronLeft() {
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d="M15 19l-7-7 7-7"
-        stroke="#475569"
+        stroke="#59413F"
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"

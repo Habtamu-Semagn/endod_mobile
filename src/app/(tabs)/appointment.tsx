@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { Image, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { Svg, Path } from "react-native-svg";
@@ -71,16 +71,18 @@ function localDateInput(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+const MOVING_CARDS = [
+  require("../../../assets/images/appointment/moving_appointment_1.png"),
+  require("../../../assets/images/appointment/moving_appointment_2.png"),
+  require("../../../assets/images/appointment/moving_appointment_3.png"),
+  require("../../../assets/images/appointment/moving_appointment_4.png"),
+];
+
 export default function AppointmentScreen({ highlightTarget, onToast = () => {}, onBook = () => {}, hideTitle }: Props) {
   const { t, locale } = useI18n();
   const { width } = useWindowDimensions();
   const cardWidth = width - 32;
-  const movingCards = [
-    { title: t("appointments.movingCards.stayOnTrack.title"), message: t("appointments.movingCards.stayOnTrack.message") },
-    { title: t("appointments.movingCards.telehealth.title"), message: t("appointments.movingCards.telehealth.message") },
-    { title: t("appointments.movingCards.medication.title"), message: t("appointments.movingCards.medication.message") },
-    { title: t("appointments.movingCards.wellness.title"), message: t("appointments.movingCards.wellness.message") },
-  ];
+  const movingCards = MOVING_CARDS;
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([]);
   const moveRef = useRef<any>(null);
@@ -425,15 +427,13 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 12, paddingBottom: 12 }}
         >
-          {movingCards.map((c, i) => (
-            <View
+          {movingCards.map((img, i) => (
+            <Image
               key={i}
-              style={{ width: cardWidth, backgroundColor: "#2D2327" }}
-              className="rounded-2xl p-4"
-            >
-              <Text className="text-base font-bold text-white">{c.title}</Text>
-              <Text className="text-sm text-white/80 mt-2">{c.message}</Text>
-            </View>
+              source={img}
+              style={{ width: cardWidth, height: cardWidth * 5 / 12, borderRadius: 16 }}
+              resizeMode="cover"
+            />
           ))}
         </ScrollView>
         {/* Queue status */}

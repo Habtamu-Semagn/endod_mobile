@@ -68,8 +68,8 @@ export default function LoginScreen() {
               resizeMode="contain"
             />
             <View className="flex-row items-baseline gap-1.5 mt-3">
-              <Text className="text-2xl font-black tracking-tight text-brand-heading">ENDOD</Text>
-              <Text className="text-2xl font-bold text-brand-accent">Health</Text>
+              <Text className="text-2xl tracking-tight text-brand-heading">Endod</Text>
+              <Text className="text-2xl text-brand-accent">Health</Text>
             </View>
 
           </View>

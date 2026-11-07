@@ -60,8 +60,8 @@ export default function SignupScreen() {
               resizeMode="contain"
             />
             <View className="flex-row items-baseline gap-1.5 mt-3">
-              <Text className="text-2xl font-black tracking-tight text-brand-heading">ENDOD</Text>
-              <Text className="text-2xl font-bold text-brand-accent">Health</Text>
+              <Text className="text-2xl tracking-tight text-brand-heading">Endod</Text>
+              <Text className="text-2xl text-brand-accent">Health</Text>
             </View>
 
           </View>
@@ -89,15 +89,11 @@ export default function SignupScreen() {
               <Text className="text-xs text-brand-muted flex-1 leading-relaxed">
                 I agree to the{" "}
                 <Link href="/terms" asChild>
-                  <Pressable>
-                    <Text className="text-xs text-brand-primary font-semibold">Terms of Service</Text>
-                  </Pressable>
+                  <Text className="text-xs text-brand-primary font-semibold">Terms of Service</Text>
                 </Link>{" "}
                 and{" "}
                 <Link href="/privacy" asChild>
-                  <Pressable>
-                    <Text className="text-xs text-brand-primary font-semibold">Privacy Policy</Text>
-                  </Pressable>
+                  <Text className="text-xs text-brand-primary font-semibold">Privacy Policy</Text>
                 </Link>
                 , and consent to receive care-related SMS messages.
               </Text>

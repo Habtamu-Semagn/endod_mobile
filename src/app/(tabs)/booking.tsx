@@ -113,8 +113,40 @@ export default function BookingScreen() {
     if (ownershipFilter !== "all") {
       list = list.filter((h) => (ownershipFilter === "private" ? h.tags.includes("Private") : !h.tags.includes("Private")));
     }
+    if (sort === "distance" && coords) {
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      list = [...list].sort((a, b) => {
+        const dA = a.latitude != null && a.longitude != null
+          ? 2 * 6371 * Math.asin(Math.sqrt(Math.sin(toRad(a.latitude - coords.latitude) / 2) ** 2 + Math.cos(toRad(coords.latitude)) * Math.cos(toRad(a.latitude)) * Math.sin(toRad(a.longitude - coords.longitude) / 2) ** 2))
+          : Infinity;
+        const dB = b.latitude != null && b.longitude != null
+          ? 2 * 6371 * Math.asin(Math.sqrt(Math.sin(toRad(b.latitude - coords.latitude) / 2) ** 2 + Math.cos(toRad(coords.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(toRad(b.longitude - coords.longitude) / 2) ** 2))
+          : Infinity;
+        return dA - dB;
+      });
+    } else if (sort === "name") {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    }
     return list;
-  }, [query, department, ownershipFilter, hospitals]);
+  }, [query, department, ownershipFilter, hospitals, sort, coords]);
+
+  const useMyLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        showToast?.("Location permission denied");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    } catch {
+      showToast?.("Could not get your location");
+    }
+  };
+
+  useEffect(() => {
+    if (sort === "distance" && !coords) void useMyLocation();
+  }, [sort, coords]);
 
   const openBooking = (facility: Hospital) => {
     setSelected(facility);
@@ -164,13 +196,15 @@ export default function BookingScreen() {
     }
   };
 
-  const mapHtml = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/>
+const center = coords ? `[${coords.latitude},${coords.longitude}]` : "[9.03,38.75]";
+const mapHtml = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>html,body,#map{height:100%;margin:0;padding:0;}</style></head><body><div id="map"></div>
 <script>
-var map=L.map('map').setView([9.03,38.75],13);
+var map=L.map('map').setView(${center},13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
+${coords ? `L.circleMarker([${coords.latitude},${coords.longitude}],{color:'#AD292F',radius:8}).addTo(map).bindPopup('You are here');` : ""}
 var pts=${JSON.stringify(facilities.map((h) => ({ id: h.id, name: h.name, lat: h.latitude, lng: h.longitude })))};
 pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',function(){ if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(p.id); }); });
 </script></body></html>`;
@@ -225,6 +259,9 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
         </View>
 
         {/* Map */}
+        <Pressable onPress={useMyLocation} className="mb-2 self-end">
+          <Text className="text-sm text-brand-primary underline">Use my location</Text>
+        </Pressable>
         <View style={{ height: 450, borderRadius: 16, overflow: "hidden", marginBottom: 12, borderWidth: 1, borderColor: "#e1bfbc", zIndex: 0, elevation: 0 }}>
           {typeof document !== "undefined" ? (
             <iframe title="Hospitals map" srcDoc={mapHtml} style={{ width: "100%", height: "100%", border: 0 }} />
