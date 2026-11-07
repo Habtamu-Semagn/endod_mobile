@@ -11,7 +11,7 @@ type SelectProps = {
   direction?: "down" | "up";
 };
 
-export function Select({ value, onValueChange, options, className = "", triggerTextClassName = "text-slate-700", triggerArrowClassName = "text-slate-400", direction = "down" }: SelectProps) {
+export function Select({ value, onValueChange, options, className = "", triggerTextClassName = "text-[#1c1c18]", triggerArrowClassName = "text-[#8d706e]", direction = "down" }: SelectProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,7 +28,7 @@ export function Select({ value, onValueChange, options, className = "", triggerT
 
       {open ? (
         <View
-          className="absolute left-0 bg-white rounded-xl border border-slate-200 overflow-visible"
+          className="absolute left-0 bg-[#fcf9f3] rounded-xl border border-[#e1bfbc] overflow-visible"
           style={direction === "up"
             ? { bottom: "100%", marginBottom: 4, zIndex: 9999, elevation: 9999, minWidth: "100%" }
             : { top: "100%", marginTop: 4, zIndex: 9999, elevation: 9999, minWidth: "100%" }}
@@ -43,13 +43,13 @@ export function Select({ value, onValueChange, options, className = "", triggerT
                     onValueChange?.(opt);
                     setOpen(false);
                   }}
-                  className={`px-4 py-3 border-b border-slate-100 ${
-                    active ? "bg-emerald-50" : ""
+                  className={`px-4 py-3 border-b border-[#e1bfbc] ${
+                    active ? "bg-[#f6f3ed]" : ""
                   }`}
                 >
                   <Text
                     className={`text-sm text-center ${
-                      active ? "text-emerald-700 font-semibold" : "text-slate-700"
+                      active ? "text-[#423238] font-semibold" : "text-[#59413f]"
                     }`}
                     numberOfLines={1}
                     ellipsizeMode="tail"

@@ -113,14 +113,14 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
             <View>
             </View>
             <View className="flex-row flex-wrap gap-2 self-start">
-              <Pressable onPress={() => setAdding(true)} className="px-3.5 py-2 rounded-full bg-black">
+              <Pressable onPress={() => setAdding(true)} className="px-3.5 py-2 rounded-full bg-[#423238]">
                 <Text className="text-white text-xs font-semibold">{t("records.addVisit")}</Text>
               </Pressable>
-              <Pressable onPress={() => setSharing(true)} disabled={!items.length} className="px-3.5 py-2 rounded-full border border-[#18242B] bg-white">
-                <Text className="text-[#18242B] text-xs font-semibold">{t("history.share")}</Text>
+              <Pressable onPress={() => setSharing(true)} disabled={!items.length} className="px-3.5 py-2 rounded-full border border-[#1c1c18] bg-white">
+                <Text className="text-[#1c1c18] text-xs font-semibold">{t("history.share")}</Text>
               </Pressable>
-              <Pressable onPress={() => router.push("/records-download")} className="px-3.5 py-2 rounded-full border border-[#DCE4E6] bg-white">
-                <Text className="text-[#25343D] text-xs font-semibold">{t("history.download")}</Text>
+              <Pressable onPress={() => router.push("/records-download")} className="px-3.5 py-2 rounded-full border border-[#e1bfbc] bg-white">
+                <Text className="text-[#59413f] text-xs font-semibold">{t("history.download")}</Text>
               </Pressable>
             </View>
           </View>
@@ -136,12 +136,12 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
               { id: "stat-hospitals", label: t("history.stat.hospitals"), value: summary?.hospitals },
               { id: "stat-self", label: t("history.stat.selfReported"), value: summary?.self_reported },
             ].map((stat) => (
-              <View key={stat.id} className="bg-white rounded-2xl border border-[#DCE4E6] p-3.5 flex-1 min-w-[40%]">
-                <Text className="text-[11px] font-semibold uppercase tracking-wider text-[#46545B]">{stat.label}</Text>
+              <View key={stat.id} className="bg-white rounded-2xl border border-[#e1bfbc] p-3.5 flex-1 min-w-[40%]">
+                <Text className="text-[11px] font-semibold uppercase tracking-wider text-[#8d706e]">{stat.label}</Text>
                 {data ? (
-                  <Text className="text-xl font-bold text-[#18242B] leading-tight">{stat.value ?? 0}</Text>
+                  <Text className="text-xl font-bold text-[#1c1c18] leading-tight">{stat.value ?? 0}</Text>
                 ) : loadError ? (
-                  <Text className="text-xl font-bold text-[#DCE4E6] leading-tight">—</Text>
+                  <Text className="text-xl font-bold text-[#e1bfbc] leading-tight">—</Text>
                 ) : (
                   <Bone className="h-6 w-12 rounded mt-0.5" />
                 )}
@@ -150,16 +150,16 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
           </View>
 
           {/* Tabs */}
-          <View className="bg-white rounded-2xl border border-[#DCE4E6] p-3 mt-2">
+          <View className="bg-white rounded-2xl border border-[#e1bfbc] p-3 mt-2">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2.5 px-1">
                 {TABS.map((item: any) => (
                   <Pressable
                     key={item.id}
                     onPress={() => setTab(item.id)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-full border ${tab === item.id ? "bg-[#18242B] border-[#18242B]" : "bg-white border-[#DCE4E6]"}`}
+                    className={`whitespace-nowrap px-4 py-2 rounded-full border ${tab === item.id ? "bg-[#423238] border-[#423238]" : "bg-white border-[#e1bfbc]"}`}
                   >
-                    <Text className={`text-sm font-semibold ${tab === item.id ? "text-white" : "text-[#25343D]"}`}>{t(item.labelKey)}</Text>
+                    <Text className={`text-sm font-semibold ${tab === item.id ? "text-white" : "text-[#59413f]"}`}>{t(item.labelKey)}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -167,14 +167,14 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
           </View>
 
           {loadError ? (
-            <Text className="text-xs text-[#B42318] bg-[#B42318]/10 border border-[#B42318]/20 rounded-lg px-3 py-2">{loadError}</Text>
+            <Text className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/10 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">{loadError}</Text>
           ) : null}
 
           {/* Records */}
           {!data && !loadError ? (
             <Skeleton className="gap-3" label={t("common.loading")}>
               {[0, 1, 2].map((i) => (
-                <View key={i} className="bg-white rounded-2xl border border-[#DCE4E6] p-4 gap-2.5">
+                <View key={i} className="bg-white rounded-2xl border border-[#e1bfbc] p-4 gap-2.5">
                   <Bone className="h-3 w-24 rounded" />
                   <Bone className="h-4 w-2/3 rounded" />
                   <Bone className="h-3 w-1/2 rounded" />
@@ -182,9 +182,9 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
               ))}
             </Skeleton>
           ) : data && !items.length ? (
-            <Text className="bg-white rounded-2xl border border-dashed border-[#DCE4E6] px-5 py-8 text-sm text-[#25343D] text-center">{t("history.empty")}</Text>
+            <Text className="bg-white rounded-2xl border border-dashed border-[#e1bfbc] px-5 py-8 text-sm text-[#59413f] text-center">{t("history.empty")}</Text>
           ) : data && !shown.length ? (
-            <Text className="bg-white rounded-2xl border border-dashed border-[#DCE4E6] px-5 py-8 text-sm text-[#25343D] text-center">{t("history.noMatch")}</Text>
+            <Text className="bg-white rounded-2xl border border-dashed border-[#e1bfbc] px-5 py-8 text-sm text-[#59413f] text-center">{t("history.noMatch")}</Text>
           ) : (
             <View className="gap-3">
               {shown.map((item: any) => {
@@ -193,29 +193,29 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
                   <Pressable
                     key={item.id}
                     onPress={() => onSelectRecord?.(item.id)}
-                    className={`bg-white rounded-2xl border overflow-hidden p-4 ${highlightTarget === target ? "border-[#46545B]" : "border-[#DCE4E6]"}`}
+                    className={`bg-white rounded-2xl border overflow-hidden p-4 ${highlightTarget === target ? "border-[#8d706e]" : "border-[#e1bfbc]"}`}
                   >
                     <View className="flex-row items-start gap-3">
-                      <View className={`w-9 h-9 rounded-xl items-center justify-center flex-shrink-0 ${item.kind === "hospital" ? "bg-[#F4F7F7] border border-[#F4F7F7]" : "bg-[#F4F7F7] border border-[#DCE4E6]"}`}>
-                        <Text className="text-[11px] font-bold text-[#25343D]">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL]).slice(0, 2)}</Text>
+                      <View className={`w-9 h-9 rounded-xl items-center justify-center flex-shrink-0 ${item.kind === "hospital" ? "bg-[#f6f3ed] border border-[#f6f3ed]" : "bg-[#f6f3ed] border border-[#e1bfbc]"}`}>
+                        <Text className="text-[11px] font-bold text-[#59413f]">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL]).slice(0, 2)}</Text>
                       </View>
                       <View className="flex-1 min-w-0">
                         <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
-                          <Text className="text-[11px] font-semibold uppercase tracking-wider text-[#46545B]">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL])}</Text>
-                          <View className={`rounded px-1.5 py-0.5 border ${item.verified ? "bg-[#F4F7F7] border-[#DCE4E6]" : "bg-[#F4F7F7] border-[#DCE4E6]"}`}>
-                            <Text className="text-[10px] font-semibold text-[#25343D]">{item.verified ? t("records.verified") : t("records.selfReported")}</Text>
+                          <Text className="text-[11px] font-semibold uppercase tracking-wider text-[#8d706e]">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL])}</Text>
+                          <View className={`rounded px-1.5 py-0.5 border ${item.verified ? "bg-[#f6f3ed] border-[#e1bfbc]" : "bg-[#f6f3ed] border-[#e1bfbc]"}`}>
+                            <Text className="text-[10px] font-semibold text-[#59413f]">{item.verified ? t("records.verified") : t("records.selfReported")}</Text>
                           </View>
                         </View>
-                        <Text className="text-sm font-semibold text-[#18242B] mt-0.5">{item.title}</Text>
-                        <Text className="text-xs text-[#25343D] mt-0.5">
+                        <Text className="text-sm font-semibold text-[#1c1c18] mt-0.5">{item.title}</Text>
+                        <Text className="text-xs text-[#59413f] mt-0.5">
                           {[formatDate(item.occurred_at), item.hospital_name, item.recorded_by].filter(Boolean).join(" · ")}
                         </Text>
                         {item.files?.length > 0 && (
-                          <Text className="text-[11px] text-[#25343D] mt-1">{t(item.files.length === 1 ? "history.filesOne" : "history.filesOther", { count: item.files.length })}</Text>
+                          <Text className="text-[11px] text-[#59413f] mt-1">{t(item.files.length === 1 ? "history.filesOne" : "history.filesOther", { count: item.files.length })}</Text>
                         )}
                       </View>
-                      <Pressable onPress={(e) => { e?.stopPropagation?.(); onSelectRecord?.(item.id); }} className="mt-1 rounded-lg border border-[#DCE4E6] px-2 py-1">
-                        <Text className="text-[11px] font-semibold text-[#25343D]">Open</Text>
+                      <Pressable onPress={(e) => { e?.stopPropagation?.(); onSelectRecord?.(item.id); }} className="mt-1 rounded-lg border border-[#e1bfbc] px-2 py-1">
+                        <Text className="text-[11px] font-semibold text-[#59413f]">Open</Text>
                       </Pressable>
                     </View>
                   </Pressable>

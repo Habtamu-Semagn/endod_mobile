@@ -1,99 +1,138 @@
-import { ScrollView, Text, View, Pressable, Image } from "react-native";
-import { useState } from "react";
+import { Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path, Rect, Circle } from "react-native-svg";
-import { APPOINTMENTS, MEDICAL_RECORDS, NOTIFICATIONS } from "../../lib/data";
+import Svg, { Path } from "react-native-svg";
+import { api } from "../../lib/api";
 import { useSession } from "../../lib/session";
-import { useToast } from "../../components/ui/Toast";
-import { Select } from "../../components/Select";
-import { EmergencyModal } from "../../components/EmergencyModal";
 import { useI18n } from "../../lib/i18n";
+import { ACTIVE_STATUSES, type Appointment } from "../../lib/appointments/data";
 
-type Section = {
-  id: string;
-  label: string;
-  sub: string;
-  href: string;
-  icon: React.ReactNode;
+const IMG = {
+  book: "https://lh3.googleusercontent.com/aida-public/AB6AXuCZha_fm_4p_Dur4AnvxO8Gq66PkgVZojxAjw7VHoi_XabytKfMab4bEpZQyNUddQN05gwXQGf6ChiDgngeAIwxdBbOYwI78kSL5P9SFYGzJQJOc_FzXPHepyhoXR4iMeZg8BUm5wMDSgwyt0ydeT2uzKBBHMrRo4DC8ewfyzQZC4HGrFqX_ppxeNMXBbGApF_7KfVzIlwGnVnBn0cdXDh4AfFxfnq0vFUKiHPw87U",
+  holistic: "https://lh3.googleusercontent.com/aida-public/AB6AXuANLGsjOBcPwASW5ZejkK9ttEUH4yQMCHuowoaHDGIhQQrBWThV3SCFOytbKsS1vqFCPD99A4swA4wQnMYuKPWi3AAV0PGXl4IqySJffua4rYQzEjS6_vsoZyCmqBYZqM6GVFmDAt3rqWNruNbi5G1YUK3x0MvXpwCbNfRmgc6WSSmmDS-p8Z42NoP5mfCbKKH_RwLQJ81ZMWQ8yr4rdO9T1aCewyhphhKhvzJPjCQ",
+  bills: require("../../../assets/images/home/bills.png"),
+  records: require("../../../assets/images/home/medical_records.png"),
+  notifications: require("../../../assets/images/home/notification.png"),
+  settings: require("../../../assets/images/home/settings.png"),
+  appointmentImg: require("../../../assets/images/home/appointment.png"),
+  doctor: "https://lh3.googleusercontent.com/aida/ALJJyrByIcXP_KQm9GCkjQOr7bsTvPq1I8GdW7cAwjV0Gb-t8tK9mo3wQZD0MyWT0HsENhsd9o6JGJXANTJ7XTJWYbRunqZzK9IKTcAzZDwybdyKme7r8diZxscd0imf5325syarY-u9ZtGP5eLtEqoJHp4L-_PruHQ83X_31lfC2yE3H3zleWX7xvbLi7vMX0-CcguNzHrzbcqP3SWwMzYNhBoV-k-8mAhVgVyXARDjz__5",
 };
+
+type Card = { id: string; label: string; sub: string; href: string; image: any; badge?: string; meta?: string };
 
 export default function HomeScreen() {
   const router = useRouter();
   const { session } = useSession();
-  const { showToast } = useToast();
-  const { t, language, setLanguage } = useI18n();
-  const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const { t } = useI18n();
   const firstName = session?.firstName || "";
-  const unread = NOTIFICATIONS.filter((n) => n.unread).length;
-  const upcoming = APPOINTMENTS.filter((a) => a.status === "Upcoming").length;
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [recordsCount, setRecordsCount] = useState(0);
+  const [appointments, setAppointments] = useState<Appointment[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    api<Appointment[]>("users/me/appointments", { query: { limit: 200 } })
+      .then((data) => { if (!cancelled) setAppointments(data); })
+      .catch(() => undefined);
+    api<any>("users/me/inbox", { query: { limit: 1 } })
+      .then((data) => { if (!cancelled) setUnreadCount(data?.unread_count ?? 0); })
+      .catch(() => undefined);
+    api<any>("users/me/history")
+      .then((data) => { if (!cancelled) setRecordsCount((data?.items ?? []).length); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+  const now = Date.now();
+  const upcoming = (appointments ?? []).filter((a) => ACTIVE_STATUSES.includes(a.status) && new Date(a.scheduled_at).getTime() + (a.duration_minutes || 30) * 60_000 >= now).length;
+  const nextAppt = (appointments ?? []).find((a) => ACTIVE_STATUSES.includes(a.status) && new Date(a.scheduled_at).getTime() + (a.duration_minutes || 30) * 60_000 >= now) ?? null;
 
-  const sections: Section[] = [
-    { id: "card", label: t("home.shortcut.card.title"), sub: t("healthCard.digitalId"), href: "/(tabs)/card", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Rect x="2" y="5" width="20" height="14" rx="2" /><Path d="M2 10h20" /></Svg> },
-    { id: "booking", label: t("home.shortcut.booking.title"), sub: t("home.shortcut.booking.hint"), href: "/(tabs)/booking", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></Svg> },
-    { id: "queue", label: t("queue.title"), sub: t("home.shortcut.queue.hint"), href: "/(tabs)/queue", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><Circle cx="9" cy="7" r="4" /><Path d="M23 21v-2a4 4 0 00-3-3.87" /><Path d="M16 3.13a4 4 0 010 7.75" /></Svg> },
-    { id: "appointment", label: t("home.shortcut.appointment.title"), sub: `${upcoming} ${t("home.shortcut.appointment.hint")}`, href: "/(tabs)/appointment", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></Svg> },
-    { id: "records", label: t("home.shortcut.followup.title"), sub: `${MEDICAL_RECORDS.length} ${t("home.shortcut.records.hint")}`, href: "/(tabs)/records", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></Svg> },
-    { id: "notification", label: t("home.shortcut.message.title"), sub: `${unread} ${t("home.shortcut.notifications.hint")}`, href: "/(tabs)/notifications", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></Svg> },
-    { id: "bills", label: t("bills.title"), sub: t("home.shortcut.bills.hint"), href: "/(tabs)/bills", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></Svg> },
-    { id: "setting", label: t("home.shortcut.settings.title"), sub: t("home.shortcut.settings.hint"), href: "/(tabs)/settings", icon: <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#176B65" strokeWidth={2}><Path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><Circle cx="12" cy="12" r="3" /></Svg> },
+  const cards: Card[] = [
+    { id: "card", label: t("home.shortcut.card.title"), sub: t("healthCard.digitalId"), href: "/(tabs)/card", image: require("../../../assets/images/home/health_card.png") },
+    { id: "booking", label: t("home.shortcut.booking.title"), sub: t("home.shortcut.booking.hint"), href: "/(tabs)/booking", image: IMG.book, badge: nextAppt ? `Next: ${new Date(nextAppt.scheduled_at).toLocaleDateString()}` : undefined },
+    { id: "appointment", label: t("home.shortcut.appointment.title"), sub: `${upcoming} ${t("home.shortcut.appointment.hint")}`, href: "/(tabs)/appointment", image: require("../../../assets/images/home/appointments.png"), meta: `${upcoming} upcoming` },
+    { id: "records", label: t("home.shortcut.followup.title"), sub: `${recordsCount} ${t("home.shortcut.records.hint")}`, href: "/(tabs)/records", image: IMG.records },
+    { id: "notifications", label: t("home.shortcut.message.title"), sub: `${unreadCount} ${t("home.shortcut.notifications.hint")}`, href: "/(tabs)/notifications", image: IMG.notifications, badge: unreadCount > 0 ? `${unreadCount} unread` : undefined },
+    { id: "bills", label: t("bills.title"), sub: t("home.shortcut.bills.hint"), href: "/(tabs)/bills", image: IMG.bills },
+    { id: "settings", label: t("home.shortcut.settings.title"), sub: t("home.shortcut.settings.hint"), href: "/(tabs)/settings", image: IMG.settings },
   ];
 
+  const SURFACE = "#FCF9F3";
+  const ON_SURFACE = "#1C1C18";
+  const ON_SURFACE_VARIANT = "#59413F";
+  const PRIMARY = "#AD292F";
+  const SECONDARY_FIXED = "#EBE1DA";
+  const ON_SECONDARY_FIXED = "#1F1B17";
+  const ON_SECONDARY_FIXED_VARIANT = "#4C4641";
+
   return (
-    <SafeAreaView className="flex-1 bg-[#E5E7EB]" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 90 }}>
-        <View className="px-5 pt-4 pb-4 bg-[#18242B]" style={{ zIndex: 100 }}>
-          <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center gap-2.5 flex-1 min-w-0">
-              <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <Circle cx="12" cy="7" r="4" />
-              </Svg>
-              <Text className="text-lg font-semibold text-white" numberOfLines={1}>
-                {firstName ? t("mobile.dashboard.greeting", { name: firstName }) : t("mobile.dashboard.greetingNoName")}
-              </Text>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: SURFACE }} edges={["bottom"]}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        <View className="px-5 pt-3">
+          <Text style={{ color: ON_SURFACE, fontSize: 30, lineHeight: 36, fontWeight: "500", letterSpacing: -0.3, fontFamily: "Newsreader-Medium" }}>
+            Welcome back, <Text style={{ fontStyle: "italic", fontWeight: "400", fontFamily: "Newsreader-Italic" }}>{firstName || "there"}.</Text>
+          </Text>
+        </View>
+
+        {nextAppt && (
+          <Pressable onPress={() => router.push("/(tabs)/appointment" as any)} className="mx-5 mt-3 rounded-2xl p-4 flex-row items-center justify-between active:opacity-90" style={{ backgroundColor: `${SECONDARY_FIXED}80` }}>
+            <View className="flex-row items-center gap-3 min-w-0 flex-1">
+              <View className="w-10 h-10 rounded-full items-center justify-center shrink-0" style={{ backgroundColor: "#FFFFFF" }}>
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                  <Path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke={PRIMARY} strokeWidth={1.8} strokeLinecap="round" />
+                </Svg>
+              </View>
+              <View className="flex-col min-w-0 flex-1">
+                <Text style={{ color: ON_SECONDARY_FIXED, fontSize: 11, fontWeight: "600", fontFamily: "PlusJakartaSans-SemiBold" }}>{new Date(nextAppt.scheduled_at).toLocaleDateString()} at {new Date(nextAppt.scheduled_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</Text>
+                <Text style={{ color: ON_SECONDARY_FIXED_VARIANT, fontSize: 13, fontFamily: "PlusJakartaSans" }} numberOfLines={1}>{nextAppt.provider_name ?? "—"} • {nextAppt.facility?.name ?? nextAppt.location ?? ""}</Text>
+              </View>
             </View>
-            <View style={{ width: 120 }}>
-              <Select
-                value={language === "en" ? "English" : "Amharic"}
-                onValueChange={(v) => setLanguage(v === "English" ? "en" : "am")}
-                options={["English", "Amharic"]}
-                triggerTextClassName="text-white"
-                triggerArrowClassName="text-white"
-              />
-            </View>
+            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+              <Path d="M9 6l6 6-6 6" stroke={ON_SECONDARY_FIXED_VARIANT} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </Pressable>
+        )}
+
+        <View className="px-5 mt-4">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text style={{ color: ON_SURFACE, fontSize: 18, fontWeight: "600", fontFamily: "Newsreader-SemiBold" }}>Care Services</Text>
+            <Text style={{ color: ON_SURFACE_VARIANT, fontSize: 11, fontWeight: "500", fontFamily: "PlusJakartaSans-Medium" }}>{cards.length} curated hubs</Text>
+          </View>
+          <View style={{ gap: 12 }}>
+            {cards.map((c) => (
+              <Pressable
+                key={c.id}
+                onPress={() => router.push(c.href as any)}
+                className="rounded-2xl overflow-hidden active:scale-[0.99]"
+                style={{ backgroundColor: "#FFFFFF", shadowColor: "#2A2521", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 14, elevation: 2 }}
+              >
+                <View className="relative w-full h-40 overflow-hidden" style={{ backgroundColor: "#F0EEE8" }}>
+                  <Image source={typeof c.image === "number" ? c.image : { uri: c.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  {c.badge && (
+                    <View className="absolute top-3 left-3 px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(252,249,243,0.9)" }}>
+                      <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: "600", fontFamily: "PlusJakartaSans-SemiBold" }}>{c.badge}</Text>
+                    </View>
+                  )}
+                  <View className="absolute top-3 right-3 w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: "rgba(252,249,243,0.9)" }}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                      <Path d="M9 6l6 6-6 6" stroke={ON_SURFACE_VARIANT} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                  </View>
+                </View>
+                <View className="p-4">
+                  <View className="flex-row items-center justify-between">
+                    <Text style={{ color: ON_SURFACE, fontSize: 18, fontWeight: "600", fontFamily: "Newsreader-SemiBold" }}>{c.label}</Text>
+                    {c.meta && (
+                      <Text style={{ color: ON_SURFACE_VARIANT, fontSize: 11, fontWeight: "500", fontFamily: "PlusJakartaSans-Medium" }}>{c.meta}</Text>
+                    )}
+                  </View>
+                  <Text style={{ color: ON_SURFACE_VARIANT, fontSize: 13, marginTop: 2, lineHeight: 18, fontFamily: "PlusJakartaSans" }} numberOfLines={2}>{c.sub}</Text>
+                </View>
+              </Pressable>
+            ))}
           </View>
         </View>
 
-        <View className="flex-row flex-wrap px-4 mt-4" style={{ gap: 16 }}>
-          {sections.map((s) => (
-            <Pressable
-              key={s.id}
-              onPress={() => router.push(s.href as any)}
-              className="bg-white rounded-2xl p-4 active:bg-slate-50 items-center"
-              style={{ width: "47%" }}
-            >
-              <View className="w-14 h-14 rounded-2xl items-center justify-center mb-2">
-                {s.icon}
-              </View>
-              <Text className="text-base font-semibold text-[#18242B] leading-tight text-center">{s.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <View className="px-4 mt-6 mb-2">
-          <Pressable
-            onPress={() => setEmergencyOpen(true)}
-            className="w-full flex-row items-center justify-center gap-2 bg-red-600 rounded-2xl py-3.5 active:opacity-90"
-          >
-            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </Svg>
-            <Text className="text-white font-bold text-base">{t("emergency.button")}</Text>
-          </Pressable>
-        </View>
       </ScrollView>
-      <EmergencyModal visible={emergencyOpen} onClose={() => setEmergencyOpen(false)} />
     </SafeAreaView>
   );
 }

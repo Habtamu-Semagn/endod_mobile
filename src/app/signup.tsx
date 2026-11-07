@@ -61,17 +61,12 @@ export default function SignupScreen() {
             />
             <View className="flex-row items-baseline gap-1.5 mt-3">
               <Text className="text-2xl font-black tracking-tight text-brand-heading">ENDOD</Text>
-              <Text className="text-2xl font-bold text-teal-600">Health</Text>
+              <Text className="text-2xl font-bold text-brand-accent">Health</Text>
             </View>
-            <Text className="text-sm text-brand-muted mt-1">Create your account</Text>
+
           </View>
 
           <View className="bg-white rounded-3xl p-6 shadow-sm border border-white/60">
-            <Text className="text-xl font-bold text-brand-heading">Get started</Text>
-            <Text className="text-sm text-brand-muted mt-1 mb-5">
-              We&apos;ll text you a verification code to confirm your number.
-            </Text>
-
             <Field
               label="Phone Number"
               value={phone}
@@ -95,13 +90,13 @@ export default function SignupScreen() {
                 I agree to the{" "}
                 <Link href="/terms" asChild>
                   <Pressable>
-                    <Text className="text-xs text-teal-700 font-semibold">Terms of Service</Text>
+                    <Text className="text-xs text-brand-primary font-semibold">Terms of Service</Text>
                   </Pressable>
                 </Link>{" "}
                 and{" "}
                 <Link href="/privacy" asChild>
                   <Pressable>
-                    <Text className="text-xs text-teal-700 font-semibold">Privacy Policy</Text>
+                    <Text className="text-xs text-brand-primary font-semibold">Privacy Policy</Text>
                   </Pressable>
                 </Link>
                 , and consent to receive care-related SMS messages.
@@ -110,14 +105,14 @@ export default function SignupScreen() {
 
             {error ? <Text className="text-xs text-rose-500 mb-3 -mt-1">{error}</Text> : null}
 
-            <Button title="Send Code" size="lg" loading={submitting} onPress={handleSubmit} />
+            <Button title="Send Code" variant="dark" size="lg" loading={submitting} onPress={handleSubmit} />
           </View>
 
           <View className="flex-row justify-center mt-6">
             <Text className="text-sm text-brand-muted">Already have an account? </Text>
             <Link href="/login" asChild>
               <Pressable>
-                <Text className="text-sm font-semibold text-teal-700">Sign in</Text>
+                <Text className="text-sm font-semibold text-brand-primary">Sign in</Text>
               </Pressable>
             </Link>
           </View>

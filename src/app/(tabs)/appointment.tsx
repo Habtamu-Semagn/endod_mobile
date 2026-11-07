@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { Svg, Path } from "react-native-svg";
@@ -34,6 +34,15 @@ type Props = {
 };
 
 type Tab = "upcoming" | "past" | "cancelled";
+type QueueEntry = {
+  entry_id: string;
+  hospital_id: string;
+  hospital_name: string;
+  ticket: number;
+  status: "waiting" | "called" | "done" | "skipped" | "cancelled";
+  ahead: number;
+  position: number;
+};
 type ModalState = { mode: "reschedule"; appointment: Appointment } | null;
 
 function weekdayLabels(locale: string): string[] {
@@ -64,7 +73,25 @@ function localDateInput(date: Date): string {
 
 export default function AppointmentScreen({ highlightTarget, onToast = () => {}, onBook = () => {}, hideTitle }: Props) {
   const { t, locale } = useI18n();
+  const { width } = useWindowDimensions();
+  const cardWidth = width - 32;
+  const movingCards = [
+    { title: t("appointments.movingCards.stayOnTrack.title"), message: t("appointments.movingCards.stayOnTrack.message") },
+    { title: t("appointments.movingCards.telehealth.title"), message: t("appointments.movingCards.telehealth.message") },
+    { title: t("appointments.movingCards.medication.title"), message: t("appointments.movingCards.medication.message") },
+    { title: t("appointments.movingCards.wellness.title"), message: t("appointments.movingCards.wellness.message") },
+  ];
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
+  const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([]);
+  const moveRef = useRef<any>(null);
+  const moveIndex = useRef(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      moveIndex.current = (moveIndex.current + 1) % movingCards.length;
+      moveRef.current?.scrollTo({ x: moveIndex.current * (cardWidth + 12), animated: true });
+    }, 4000);
+    return () => clearInterval(id);
+  }, [cardWidth, movingCards]);
   const [loadError, setLoadError] = useState("");
   const [tab, setTab] = useState<Tab>("upcoming");
   const [typeFilter, setTypeFilter] = useState<"all" | "in_person" | "telehealth">("all");
@@ -113,10 +140,25 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
     }
   }, []);
 
+  const loadQueue = useCallback(async () => {
+    try {
+      const data = await api<{ entries: QueueEntry[] }>("users/me/queue");
+      setQueueEntries((data.entries ?? []).filter((e) => e.status === "waiting" || e.status === "called"));
+    } catch {
+      // keep shown
+    }
+  }, []);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadQueue();
+    const id = setInterval(() => void loadQueue(), 15000);
+    return () => clearInterval(id);
+  }, [loadQueue]);
 
   useFocusEffect(
     useCallback(() => {
@@ -252,41 +294,41 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
     return (
       <View
         key={a.appointment_id}
-        className={`bg-white rounded-2xl border p-4 gap-3 ${cancelled ? "opacity-60" : ""} ${highlighted ? "border-[#18242B]" : "border-[#DCE4E6]"}`}
+        className={`bg-white rounded-2xl border p-4 gap-3 ${cancelled ? "opacity-60" : ""} ${highlighted ? "border-[#1c1c18]" : "border-[#e1bfbc]"}`}
       >
         <View className="flex-row items-center gap-4">
-          <View className="w-10 h-10 rounded-xl border border-[#DCE4E6] bg-[#F4F7F7] items-center justify-center flex-shrink-0">
-            <Text className="text-[#18242B] font-bold text-sm">{initials(appointmentTitle(a, t))}</Text>
+          <View className="w-10 h-10 rounded-xl border border-[#e1bfbc] bg-[#f6f3ed] items-center justify-center flex-shrink-0">
+            <Text className="text-[#1c1c18] font-bold text-sm">{initials(appointmentTitle(a, t))}</Text>
           </View>
           <View className="flex-1 min-w-0">
-            <Text className="text-sm font-bold text-[#18242B]">{appointmentTitle(a, t)}</Text>
-            <Text className="text-xs text-[#25343D] mt-0.5">{appointmentPlace(a, t)}</Text>
+            <Text className="text-sm font-bold text-[#1c1c18]">{appointmentTitle(a, t)}</Text>
+            <Text className="text-xs text-[#59413f] mt-0.5">{appointmentPlace(a, t)}</Text>
             <View className="flex-row flex-wrap items-center gap-x-4 gap-y-0.5 mt-1">
-              <Text className="text-xs text-[#25343D]">{formatWhen(a.scheduled_at, locale)}</Text>
-              <Text className="text-xs text-[#25343D]">{telehealth ? t("appointments.virtual") : t("appointments.inPersonTag")}</Text>
-              {a.department && <Text className="text-xs text-[#25343D]">{departmentLabel(a.department, t)}</Text>}
+              <Text className="text-xs text-[#59413f]">{formatWhen(a.scheduled_at, locale)}</Text>
+              <Text className="text-xs text-[#59413f]">{telehealth ? t("appointments.virtual") : t("appointments.inPersonTag")}</Text>
+              {a.department && <Text className="text-xs text-[#59413f]">{departmentLabel(a.department, t)}</Text>}
               {a.time_window !== "exact" && timeWindowLabel && (
-                <Text className="text-xs text-[#25343D]">{t("appointments.arriveIn", { window: t(timeWindowLabel.labelKey) })}</Text>
+                <Text className="text-xs text-[#59413f]">{t("appointments.arriveIn", { window: t(timeWindowLabel.labelKey) })}</Text>
               )}
             </View>
             {hb && (
               <View className="flex-row flex-wrap items-center gap-2 mt-1.5">
                 <View
                   className={`rounded px-1.5 py-0.5 ${
-                    hb.state === "confirmed" || hb.state === "completed" ? "bg-[#F4F7F7]"
-                      : closed ? "bg-rose-50"
-                      : unpaid ? "bg-[#B7791F]/10" : "bg-[#F4F7F7]"
+                    hb.state === "confirmed" || hb.state === "completed" ? "bg-[#f6f3ed]"
+                      : closed ? "bg-[#ffdad6]"
+                      : unpaid ? "bg-[#8d706e]/10" : "bg-[#f6f3ed]"
                   }`}
                 >
                   <Text className={`text-[11px] font-semibold ${
-                    hb.state === "confirmed" || hb.state === "completed" ? "text-[#18242B]"
+                    hb.state === "confirmed" || hb.state === "completed" ? "text-[#1c1c18]"
                       : closed ? "text-rose-700"
-                      : unpaid ? "text-[#B7791F]" : "text-[#25343D]"
+                      : unpaid ? "text-[#8d706e]" : "text-[#59413f]"
                   }`}>
                     {t(`appointments.hospital.${hb.state}` as TranslationKey)}
                   </Text>
                 </View>
-                <Text className="text-[11px] text-[#25343D]">
+                <Text className="text-[11px] text-[#59413f]">
                   {payment === "awaiting_payment"
                     ? t("appointments.payment.awaiting", {
                         amount,
@@ -304,7 +346,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
                     : t("appointments.paid", { amount })}
                 </Text>
                 {hb.reason && closed && hb.state !== "payment_expired" && (
-                  <Text className="text-[11px] text-[#25343D]">· {hb.reason}</Text>
+                  <Text className="text-[11px] text-[#59413f]">· {hb.reason}</Text>
                 )}
               </View>
             )}
@@ -319,29 +361,29 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
               </Pressable>
             )}
             {!hb && telehealth && a.meeting_url && tabOf(a, now) === "upcoming" && (
-              <Text className="mt-1 text-xs font-semibold text-[#18242B]">{t("appointments.joinVideo")}</Text>
+              <Text className="mt-1 text-xs font-semibold text-[#1c1c18]">{t("appointments.joinVideo")}</Text>
             )}
           </View>
         </View>
         {tabOf(a, now) === "upcoming" ? (
           confirmCancelId === a.appointment_id ? (
             <View className="flex-row items-center gap-2 flex-shrink-0">
-              <Text className="text-xs text-[#25343D]">
+              <Text className="text-xs text-[#59413f]">
                 {unpaid ? t("appointments.cancelUnpaid")
                   : hb && !atHospital ? t("appointments.cancelRefund", { amount }) : t("appointments.cancelThis")}
               </Text>
-              <Pressable disabled={busyId === a.appointment_id} onPress={() => cancelAppointment(a)} className="px-3 py-1.5 bg-rose-600 rounded-lg">
+              <Pressable disabled={busyId === a.appointment_id} onPress={() => cancelAppointment(a)} className="px-3 py-1.5 bg-[#ba1a1a] rounded-lg">
                 <Text className="text-white text-xs font-semibold">{t("appointments.yesCancel")}</Text>
               </Pressable>
-              <Pressable onPress={() => setConfirmCancelId(null)} className="px-3 py-1.5 bg-white border border-[#DCE4E6] rounded-lg">
-                <Text className="text-[#25343D] text-xs font-semibold">{t("appointments.keep")}</Text>
+              <Pressable onPress={() => setConfirmCancelId(null)} className="px-3 py-1.5 bg-white border border-[#e1bfbc] rounded-lg">
+                <Text className="text-[#59413f] text-xs font-semibold">{t("appointments.keep")}</Text>
               </Pressable>
             </View>
           ) : (
             <View className="flex-row items-center gap-2 flex-shrink-0">
               {!hb && (
-                <Pressable onPress={() => openReschedule(a)} className="px-3.5 py-1.5 bg-white border border-[#DCE4E6] rounded-lg">
-                  <Text className="text-[#25343D] text-xs font-semibold">{t("appointments.reschedule")}</Text>
+                <Pressable onPress={() => openReschedule(a)} className="px-3.5 py-1.5 bg-white border border-[#e1bfbc] rounded-lg">
+                  <Text className="text-[#59413f] text-xs font-semibold">{t("appointments.reschedule")}</Text>
                 </Pressable>
               )}
               <Pressable onPress={() => setConfirmCancelId(a.appointment_id)} className="px-3.5 py-1.5 bg-white border border-rose-200 rounded-lg">
@@ -351,14 +393,14 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
           )
         ) : (
           <View className={`px-3 py-1 rounded-lg flex-shrink-0 border ${
-            cancelled ? "bg-rose-50 border-rose-200"
-              : a.status === "COMPLETED" ? "bg-[#F4F7F7] border-[#DCE4E6]"
-              : "bg-[#F4F7F7] border-[#DCE4E6]"
+            cancelled ? "bg-[#ffdad6] border-rose-200"
+              : a.status === "COMPLETED" ? "bg-[#f6f3ed] border-[#e1bfbc]"
+              : "bg-[#f6f3ed] border-[#e1bfbc]"
           }`}>
             <Text className={`text-xs font-semibold ${
               cancelled ? "text-rose-700"
-                : a.status === "COMPLETED" ? "text-[#18242B]"
-                : "text-[#25343D]"
+                : a.status === "COMPLETED" ? "text-[#1c1c18]"
+                : "text-[#59413f]"
             }`}>
               {cancelled ? t("appointments.status.cancelled")
                 : a.status === "COMPLETED" ? t("appointments.status.completed")
@@ -376,13 +418,46 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
   return (
     <View className="flex-1 bg-app">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        {/* Auto-moving message cards */}
+        <ScrollView
+          ref={moveRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 12, paddingBottom: 12 }}
+        >
+          {movingCards.map((c, i) => (
+            <View
+              key={i}
+              style={{ width: cardWidth, backgroundColor: "#2D2327" }}
+              className="rounded-2xl p-4"
+            >
+              <Text className="text-base font-bold text-white">{c.title}</Text>
+              <Text className="text-sm text-white/80 mt-2">{c.message}</Text>
+            </View>
+          ))}
+        </ScrollView>
+        {/* Queue status */}
+        <View className="mb-4">
+          <Text className="text-sm font-semibold text-[#1c1c18] mb-2">{t("appointments.queue.title")}</Text>
+          {queueEntries.length === 0 ? (
+            <Text className="text-xs text-[#59413f]">{t("appointments.queue.empty")}</Text>
+          ) : (
+            queueEntries.map((entry) => (
+              <View key={entry.entry_id} className="bg-white rounded-2xl border border-[#e1bfbc] p-4 mb-2 items-center">
+                <Text className="text-5xl font-extrabold text-[#423238]">{entry.position}</Text>
+                <Text className="text-sm font-semibold text-[#1c1c18] mt-2">{entry.hospital_name}</Text>
+                <Text className="text-xs text-[#59413f] mt-1">{entry.ahead} {t("appointments.queue.peopleAhead")}</Text>
+              </View>
+            ))
+          )}
+        </View>
         <View className="gap-6 pb-6">
           {/* Title */}
-          <View className="flex-col gap-4 pb-2 border-b border-[#DCE4E6]">
+          <View className="flex-col gap-4 pb-2 border-b border-[#e1bfbc]">
             <View>
               <View className="flex-row items-center gap-3">
-                <View className="px-2.5 py-0.5 rounded-full bg-[#F4F7F7] border border-[#DCE4E6]">
-                  <Text className="text-xs font-semibold text-[#18242B]">{t("appointments.scheduledCount", { count: counts.upcoming })}</Text>
+                <View className="px-2.5 py-0.5 rounded-full bg-[#f6f3ed] border border-[#e1bfbc]">
+                  <Text className="text-xs font-semibold text-[#1c1c18]">{t("appointments.scheduledCount", { count: counts.upcoming })}</Text>
                 </View>
               </View>
             </View>
@@ -392,27 +467,27 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
 
           {/* Stat cards */}
           <View className="gap-4">
-            <View className="bg-white p-4 rounded-2xl border border-[#DCE4E6] flex-row items-center gap-3.5">
-              <View className="w-12 h-12 rounded-xl bg-[#F4F7F7] items-center justify-center flex-shrink-0">
+            <View className="bg-white p-4 rounded-2xl border border-[#e1bfbc] flex-row items-center gap-3.5">
+              <View className="w-12 h-12 rounded-xl bg-[#f6f3ed] items-center justify-center flex-shrink-0">
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                  <Path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="#18242B" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+                  <Path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="#1c1c18" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
               </View>
               <View>
-                <Text className="text-[11px] font-medium text-[#46545B] uppercase tracking-wider">{t("appointments.nextAppointment")}</Text>
-                <Text className="text-base font-bold text-[#18242B] mt-0.5">{nextVisit ? formatWhen(nextVisit.scheduled_at, locale) : t("appointments.noneScheduled")}</Text>
-                {nextVisit && <Text className="text-[11px] text-[#18242B] font-medium">{appointmentTitle(nextVisit, t)}</Text>}
+                <Text className="text-[11px] font-medium text-[#8d706e] uppercase tracking-wider">{t("appointments.nextAppointment")}</Text>
+                <Text className="text-base font-bold text-[#1c1c18] mt-0.5">{nextVisit ? formatWhen(nextVisit.scheduled_at, locale) : t("appointments.noneScheduled")}</Text>
+                {nextVisit && <Text className="text-[11px] text-[#1c1c18] font-medium">{appointmentTitle(nextVisit, t)}</Text>}
               </View>
             </View>
             {videoVisits && (
-              <View className="bg-white p-4 rounded-2xl border border-[#DCE4E6] flex-row items-center gap-3.5">
-                <View className="w-12 h-12 rounded-xl bg-[#F4F7F7] items-center justify-center flex-shrink-0">
-                  <Text className="text-[#18242B] text-xl">🎥</Text>
+              <View className="bg-white p-4 rounded-2xl border border-[#e1bfbc] flex-row items-center gap-3.5">
+                <View className="w-12 h-12 rounded-xl bg-[#f6f3ed] items-center justify-center flex-shrink-0">
+                  <Text className="text-[#1c1c18] text-xl">🎥</Text>
                 </View>
                 <View>
-                  <Text className="text-[11px] font-medium text-[#46545B] uppercase tracking-wider">{t("appointments.nextVideoVisit")}</Text>
-                  <Text className="text-base font-bold text-[#18242B] mt-0.5">{nextVideo ? formatWhen(nextVideo.scheduled_at, locale) : t("appointments.noneScheduled")}</Text>
-                  {nextVideo && <Text className="text-[11px] text-[#18242B] font-medium">{appointmentTitle(nextVideo, t)}</Text>}
+                  <Text className="text-[11px] font-medium text-[#8d706e] uppercase tracking-wider">{t("appointments.nextVideoVisit")}</Text>
+                  <Text className="text-base font-bold text-[#1c1c18] mt-0.5">{nextVideo ? formatWhen(nextVideo.scheduled_at, locale) : t("appointments.noneScheduled")}</Text>
+                  {nextVideo && <Text className="text-[11px] text-[#1c1c18] font-medium">{appointmentTitle(nextVideo, t)}</Text>}
                 </View>
               </View>
             )}
@@ -421,8 +496,8 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
           <View className="gap-6">
             <View className="gap-5">
               {/* Tabs & Filters */}
-              <View className="bg-white p-3.5 rounded-2xl border border-[#DCE4E6] flex-col gap-3" style={{ zIndex: 1000, elevation: 1000 }}>
-                <View className="flex-row items-center gap-1 p-1 bg-[#F4F7F7] rounded-xl">
+              <View className="bg-white p-3.5 rounded-2xl border border-[#e1bfbc] flex-col gap-3" style={{ zIndex: 1000, elevation: 1000 }}>
+                <View className="flex-row items-center gap-1 p-1 bg-[#f6f3ed] rounded-xl">
                   {([
                     { id: "upcoming" as const, label: t("appointments.tabUpcoming", { count: counts.upcoming }) },
                     { id: "past" as const, label: t("appointments.tabPast", { count: counts.past }) },
@@ -433,7 +508,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
                       onPress={() => setTab(t2.id)}
                       className={`px-3.5 py-1.5 rounded-lg ${tab === t2.id ? "bg-white" : ""}`}
                     >
-                      <Text className={`text-xs ${tab === t2.id ? "font-semibold text-[#18242B]" : "font-medium text-[#25343D]"}`}>{t2.label}</Text>
+                      <Text className={`text-xs ${tab === t2.id ? "font-semibold text-[#1c1c18]" : "font-medium text-[#59413f]"}`}>{t2.label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -462,7 +537,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
               </View>
 
               {loadError ? (
-                <Text className="text-xs text-[#B42318] bg-[#B42318]/10 border border-[#B42318]/20 rounded-lg px-3 py-2">{loadError}</Text>
+                <Text className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/10 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">{loadError}</Text>
               ) : null}
               <View className="gap-3">
                 {!appointments && !loadError && (
@@ -473,7 +548,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
                   </Skeleton>
                 )}
                 {appointments && visible.length === 0 && (
-                  <Text className="text-xs text-[#25343D] bg-white border border-[#DCE4E6] rounded-2xl p-4">
+                  <Text className="text-xs text-[#59413f] bg-white border border-[#e1bfbc] rounded-2xl p-4">
                     {tab === "upcoming" ? t("appointments.emptyUpcoming")
                       : tab === "past" ? t("appointments.emptyPast") : t("appointments.emptyCancelled")}
                   </Text>
@@ -484,43 +559,43 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
 
             {/* Calendar */}
             <View className="gap-5">
-              <View className="bg-white rounded-2xl border border-[#DCE4E6] p-5">
+              <View className="bg-white rounded-2xl border border-[#e1bfbc] p-5">
                 <View className="flex-row items-center justify-between mb-4">
-                  <Text className="text-sm font-bold text-[#18242B]">{monthLabel}</Text>
+                  <Text className="text-sm font-bold text-[#1c1c18]">{monthLabel}</Text>
                   <View className="flex-row items-center gap-1">
                     <Pressable onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="p-1 rounded-lg">
-                      <Text className="text-[#46545B]">‹</Text>
+                      <Text className="text-[#8d706e]">‹</Text>
                     </Pressable>
                     <Pressable onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="p-1 rounded-lg">
-                      <Text className="text-[#46545B]">›</Text>
+                      <Text className="text-[#8d706e]">›</Text>
                     </Pressable>
                   </View>
                 </View>
                 <View className="flex-row flex-wrap">
-                  {weekdays.map((d) => <Text key={d} className="w-[14.28%] text-center text-[11px] font-semibold text-[#46545B] mb-2">{d}</Text>)}
+                  {weekdays.map((d) => <Text key={d} className="w-[14.28%] text-center text-[11px] font-semibold text-[#8d706e] mb-2">{d}</Text>)}
                 </View>
                 <View className="flex-row flex-wrap">
                   {Array.from({ length: leadingBlanks }, (_, i) => <View key={`blank-${i}`} className="w-[14.28%]" />)}
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
                     const key = dateKey(new Date(month.getFullYear(), month.getMonth(), day));
                     const mode = busyDays.get(key);
-                    let cls = "w-[14.28%] p-2 text-center text-xs text-[#25343D] rounded-lg";
-                    if (key === todayKey) cls = "w-[14.28%] p-2 text-center text-xs rounded-lg border-2 border-[#46545B] font-bold text-[#18242B]";
+                    let cls = "w-[14.28%] p-2 text-center text-xs text-[#59413f] rounded-lg";
+                    if (key === todayKey) cls = "w-[14.28%] p-2 text-center text-xs rounded-lg border-2 border-[#8d706e] font-bold text-[#1c1c18]";
                     if (mode) cls = mode === "telehealth" && videoVisits
-                      ? "w-[14.28%] p-2 text-center text-xs rounded-lg bg-[#DCE4E6] text-[#18242B] font-bold"
+                      ? "w-[14.28%] p-2 text-center text-xs rounded-lg bg-[#e1bfbc] text-[#1c1c18] font-bold"
                       : "w-[14.28%] p-2 text-center text-xs rounded-lg bg-black text-white font-bold";
                     return <Text key={key} className={cls}>{day}</Text>;
                   })}
                 </View>
-                <View className="mt-4 pt-3 border-t border-[#F4F7F7] flex-row items-center gap-4">
+                <View className="mt-4 pt-3 border-t border-[#f6f3ed] flex-row items-center gap-4">
                   <View className="flex-row items-center gap-1.5">
                     <View className="w-2.5 h-2.5 rounded-full bg-black" />
-                    <Text className="text-[11px] text-[#25343D]">{t("appointments.legendInPerson")}</Text>
+                    <Text className="text-[11px] text-[#59413f]">{t("appointments.legendInPerson")}</Text>
                   </View>
                   {videoVisits && (
                     <View className="flex-row items-center gap-1.5">
-                      <View className="w-2.5 h-2.5 rounded-full bg-[#DCE4E6] border border-[#46545B]" />
-                      <Text className="text-[11px] text-[#25343D]">{t("appointments.legendTelehealth")}</Text>
+                      <View className="w-2.5 h-2.5 rounded-full bg-[#e1bfbc] border border-[#8d706e]" />
+                      <Text className="text-[11px] text-[#59413f]">{t("appointments.legendTelehealth")}</Text>
                     </View>
                   )}
                 </View>
@@ -531,24 +606,24 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
 
         {/* Reschedule Modal */}
         {modal && (
-          <View className="absolute inset-0 bg-[#18242B]/60 items-center justify-center p-4" style={{ zIndex: 2000, elevation: 2000 }}>
-            <View className="bg-white rounded-3xl w-full p-6 border border-[#DCE4E6] max-h-[95%]">
-              <View className="flex-row items-center justify-between pb-3 border-b border-[#F4F7F7]">
+          <View className="absolute inset-0 bg-[#1c1c18]/60 items-center justify-center p-4" style={{ zIndex: 2000, elevation: 2000 }}>
+            <View className="bg-white rounded-3xl w-full p-6 border border-[#e1bfbc] max-h-[95%]">
+              <View className="flex-row items-center justify-between pb-3 border-b border-[#f6f3ed]">
                 <View>
-                  <Text className="text-base font-bold text-[#18242B]">
+                  <Text className="text-base font-bold text-[#1c1c18]">
                     {t("appointments.modal.rescheduleTitle", { name: appointmentTitle(modal.appointment, t) })}
                   </Text>
-                  <Text className="text-xs text-[#25343D]">{t("appointments.modal.chooseNew")}</Text>
+                  <Text className="text-xs text-[#59413f]">{t("appointments.modal.chooseNew")}</Text>
                 </View>
                 <Pressable onPress={closeModal} className="p-1.5 rounded-lg">
-                  <Text className="text-[#46545B] text-lg">✕</Text>
+                  <Text className="text-[#8d706e] text-lg">✕</Text>
                 </Pressable>
               </View>
 
               {success ? (
-                <View className="mt-4 p-4 rounded-2xl bg-[#F4F7F7] border border-[#DCE4E6] items-center">
-                  <Text className="text-sm font-bold text-[#18242B]">{t("appointments.modal.moved")}</Text>
-                  <Text className="text-xs text-[#18242B] mt-1">{success}</Text>
+                <View className="mt-4 p-4 rounded-2xl bg-[#f6f3ed] border border-[#e1bfbc] items-center">
+                  <Text className="text-sm font-bold text-[#1c1c18]">{t("appointments.modal.moved")}</Text>
+                  <Text className="text-xs text-[#1c1c18] mt-1">{success}</Text>
                   <Pressable onPress={closeModal} className="mt-3 px-4 py-1.5 bg-black rounded-lg">
                     <Text className="text-white text-xs font-semibold">{t("common.done")}</Text>
                   </Pressable>
@@ -557,9 +632,9 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
                 <View className="mt-4 gap-4">
                   <View className="flex-row gap-3">
                     <View className="flex-1">
-                      <Text className="text-xs font-bold text-[#25343D] uppercase tracking-wider mb-1.5">{t("appointments.modal.date")}</Text>
-                      <Pressable onPress={() => setShowDatePicker(true)} className="w-full text-xs bg-[#F4F7F7] border border-[#DCE4E6] rounded-xl px-3 py-2">
-                        <Text className="text-xs text-[#18242B]">{formDate || t("appointments.modal.date")}</Text>
+                      <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">{t("appointments.modal.date")}</Text>
+                      <Pressable onPress={() => setShowDatePicker(true)} className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2">
+                        <Text className="text-xs text-[#1c1c18]">{formDate || t("appointments.modal.date")}</Text>
                       </Pressable>
                       {showDatePicker ? (
                         <DateTimePicker
@@ -579,9 +654,9 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
                       ) : null}
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs font-bold text-[#25343D] uppercase tracking-wider mb-1.5">{t("appointments.modal.time")}</Text>
-                      <Pressable onPress={() => setShowTimePicker(true)} className="w-full text-xs bg-[#F4F7F7] border border-[#DCE4E6] rounded-xl px-3 py-2">
-                        <Text className="text-xs text-[#18242B]">{formTime || t("appointments.modal.time")}</Text>
+                      <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">{t("appointments.modal.time")}</Text>
+                      <Pressable onPress={() => setShowTimePicker(true)} className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2">
+                        <Text className="text-xs text-[#1c1c18]">{formTime || t("appointments.modal.time")}</Text>
                       </Pressable>
                       {showTimePicker ? (
                         <DateTimePicker
@@ -603,7 +678,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
 
                   {modal.appointment.visit_mode === "in_person" && (
                     <View style={{ zIndex: 1000, elevation: 1000 }}>
-                      <Text className="text-xs font-bold text-[#25343D] uppercase tracking-wider mb-1.5">{t("appointments.modal.arrivalWindow")}</Text>
+                      <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">{t("appointments.modal.arrivalWindow")}</Text>
                       <Select
                         value={t(TIME_WINDOWS.find((w) => w.value === formWindow)?.labelKey ?? TIME_WINDOWS[0].labelKey)}
                         onValueChange={(v) => {
@@ -617,12 +692,12 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
                   )}
 
                   {formError ? (
-                    <Text className="text-xs text-[#B42318] bg-[#B42318]/10 border border-[#B42318]/20 rounded-lg px-3 py-2">{formError}</Text>
+                    <Text className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/10 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">{formError}</Text>
                   ) : null}
 
                   <View className="pt-2 flex-row items-center justify-end gap-3">
                     <Pressable onPress={closeModal} className="px-4 py-2 rounded-xl">
-                      <Text className="text-xs font-semibold text-[#25343D]">{t("common.cancel")}</Text>
+                      <Text className="text-xs font-semibold text-[#59413f]">{t("common.cancel")}</Text>
                     </Pressable>
                     <Pressable onPress={submit} disabled={isSubmitting} className="px-5 py-2 bg-black rounded-xl">
                       <Text className="text-white text-xs font-bold">{isSubmitting ? t("common.saving") : t("appointments.modal.confirmReschedule")}</Text>

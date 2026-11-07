@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 type ButtonProps = {
   title: string;
   onPress?: () => void;
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+  variant?: "primary" | "secondary" | "dark" | "outline" | "ghost";
   size?: "md" | "lg";
   loading?: boolean;
   disabled?: boolean;
@@ -13,17 +13,19 @@ type ButtonProps = {
 };
 
 const VARIANTS: Record<string, string> = {
-  primary: "bg-emerald-600 active:bg-emerald-700",
+  primary: "bg-brand-primary active:bg-brand-accent",
   secondary: "bg-brand-primary active:bg-brand-accent",
-  outline: "bg-white border border-slate-300 active:bg-slate-50",
-  ghost: "bg-transparent active:bg-slate-100",
+  dark: "bg-[#2D2327] active:bg-[#423238]",
+  outline: "bg-white border border-brand-border active:bg-brand-bg",
+  ghost: "bg-transparent active:bg-brand-bg",
 };
 
 const TEXT_VARIANTS: Record<string, string> = {
   primary: "text-white",
   secondary: "text-white",
-  outline: "text-slate-700",
-  ghost: "text-slate-600",
+  dark: "text-white",
+  outline: "text-brand-heading",
+  ghost: "text-brand-muted",
 };
 
 export function Button({

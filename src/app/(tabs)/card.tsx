@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform } from "react-native";
+import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform, ImageBackground } from "react-native";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { captureRef } from "react-native-view-shot";
 import * as Print from "expo-print";
@@ -74,22 +74,57 @@ export default function HealthCardScreen() {
     try {
       const uri = await captureCard();
 
+      let base64: string;
       if (Platform.OS === "web") {
+        const res = await fetch(uri);
+        const blob = await res.blob();
+        base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve((reader.result as string).split(",")[1] ?? "");
+          reader.onerror = () => reject(new Error(t("card.error.readImage")));
+          reader.readAsDataURL(blob);
+        });
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Save health card image" });
         }
         showToast(t("common.done"), t("card.saved.ready"));
         return;
+      } else {
+        base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
       }
 
-      const permission = await MediaLibrary.requestPermissionsAsync(true);
-      if (permission.status !== "granted") {
-        showToast("Permission needed", t("card.permissionMessage"));
-        return;
+      if (Platform.OS === "android") {
+        const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (!permission.granted) {
+          showToast(t("card.cancelled"), t("card.noFolder"));
+          return;
+        }
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          permission.directoryUri,
+          "health-card",
+          "image/png"
+        );
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        showToast(t("common.done"), t("card.saved.image"));
+      } else {
+        const dest = `${FileSystem.cacheDirectory}health-card.png`;
+        try {
+          await FileSystem.deleteAsync(dest, { idempotent: true });
+        } catch {
+          // ignore
+        }
+        await FileSystem.writeAsStringAsync(dest, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(dest, { mimeType: "image/png", dialogTitle: "Save health card image" });
+        }
+        showToast(t("common.done"), t("card.saved.image"));
       }
-
-      await MediaLibrary.saveToLibraryAsync(uri);
-      showToast(t("common.done"), t("card.saved.image"));
     } catch (e: any) {
       showToast(t("common.somethingWrong"), e?.message ?? t("card.error.saveImage"));
     } finally {
@@ -206,7 +241,7 @@ export default function HealthCardScreen() {
         {/* ===== Digital Health Card ===== */}
         <View ref={cardRef} collapsable={false} style={{ marginTop: 48 }}>
         <LinearGradient
-          colors={["#1e3a2e", "#1e4d43", "#000000"]}
+          colors={["#423238", "#2b1f22", "#000000"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ width: "100%", aspectRatio: 1.586, borderRadius: 16, overflow: "hidden" }}
@@ -298,7 +333,7 @@ export default function HealthCardScreen() {
               onPress={downloadPdf}
               disabled={busy}
               className="w-full flex-row items-center justify-center gap-2 py-3 px-4 rounded-full active:opacity-90"
-              style={{ backgroundColor: "#176B65", opacity: busy ? 0.6 : 1 }}
+              style={{ backgroundColor: "#423238", opacity: busy ? 0.6 : 1 }}
             >
               {savingPdf ? <ActivityIndicator color="#ffffff" /> : (
                 <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.5}>
@@ -311,7 +346,7 @@ export default function HealthCardScreen() {
               onPress={downloadImage}
               disabled={busy}
               className="w-full flex-row items-center justify-center gap-2 py-3 px-4 rounded-full active:opacity-90"
-              style={{ backgroundColor: "#176B65", opacity: busy ? 0.6 : 1 }}
+              style={{ backgroundColor: "#423238", opacity: busy ? 0.6 : 1 }}
             >
               {savingImage ? <ActivityIndicator color="#ffffff" /> : (
                 <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.5}>
@@ -326,7 +361,7 @@ export default function HealthCardScreen() {
         {/* Show QR */}
         <View className="mt-6 items-center">
           <Pressable onPress={() => setQrOpen(true)}>
-            <Text className="text-xl font-semibold text-[#1e5852] underline">{t("card.showQr")}</Text>
+            <Text className="text-xl font-semibold text-[#423238] underline">{t("card.showQr")}</Text>
           </Pressable>
         </View>
 
@@ -338,7 +373,7 @@ export default function HealthCardScreen() {
                 <QRCode value={qrData} size={200} />
               </View>
               <Text className="text-2xl font-bold text-[#18242B]">{fullName}</Text>
-              <Text className="text-base font-semibold text-[#176B65] mt-1">{userId}</Text>
+              <Text className="text-base font-semibold text-[#423238] mt-1">{userId}</Text>
               <Pressable onPress={() => setQrOpen(false)} className="mt-8 px-8 py-3 rounded-full border border-[#DCE4E6]">
                 <Text className="text-[#25343D] font-semibold">{t("card.close")}</Text>
               </Pressable>

@@ -97,8 +97,8 @@ export default function RecordsDownloadScreen() {
     <View className="flex-1 bg-app">
       <View className="bg-white border-b border-slate-200 px-4 py-3 flex-row items-center justify-between">
         <Pressable onPress={() => router.back()} className="flex-row items-center gap-2">
-          <Text className="text-xl font-bold text-[#18242B]">←</Text>
-          <Text className="text-sm font-semibold text-[#25343D]">Back to app</Text>
+          <Text className="text-xl font-bold text-[#1c1c18]">←</Text>
+          <Text className="text-sm font-semibold text-[#59413f]">Back to app</Text>
         </Pressable>
         <Pressable onPress={handlePrint} disabled={saving || loading} className="px-4 py-2 rounded-xl bg-black">
           <Text className="text-white text-xs font-bold">{saving ? "Saving..." : loading ? "Loading..." : "Print or save as PDF"}</Text>
@@ -106,15 +106,15 @@ export default function RecordsDownloadScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-        <Text className="text-lg font-bold text-[#18242B] mb-4">Medical History</Text>
+        <Text className="text-lg font-bold text-[#1c1c18] mb-4">Medical History</Text>
         {loading ? (
-          <Text className="text-sm text-[#25343D]">Loading...</Text>
+          <Text className="text-sm text-[#59413f]">Loading...</Text>
         ) : (
           <View className="gap-3">
             {items.map((it: any) => (
-              <View key={it.id} className="bg-white rounded-2xl border border-[#DCE4E6] p-4">
-                <Text className="text-sm font-semibold text-[#18242B]">{it.title}</Text>
-                <Text className="text-xs text-[#25343D] mt-1">
+              <View key={it.id} className="bg-white rounded-2xl border border-[#e1bfbc] p-4">
+                <Text className="text-sm font-semibold text-[#1c1c18]">{it.title}</Text>
+                <Text className="text-xs text-[#59413f] mt-1">
                   {[it.occurred_at ? new Date(it.occurred_at).toLocaleDateString() : "", it.hospital_name, it.kind === "self" ? "Self-reported" : "Verified"].filter(Boolean).join(" · ")}
                 </Text>
               </View>

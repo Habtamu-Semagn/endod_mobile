@@ -4,15 +4,20 @@ import Svg, { Path } from "react-native-svg";
 import { useSession } from "../lib/session";
 import { useI18n } from "../lib/i18n";
 import { Select } from "./Select";
+import { useState } from "react";
+import { EmergencyModal } from "./EmergencyModal";
 import { NOTIFICATIONS } from "../lib/data";
+
+const ON_SURFACE = "#1C1C18";
+const ON_SURFACE_VARIANT = "#59413F";
 
 export function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
-  const { session, signOut } = useSession();
+  const { signOut } = useSession();
   const { language, setLanguage, t } = useI18n();
   const unread = NOTIFICATIONS.filter((n) => n.unread).length;
-  const name = session ? `${session.firstName} ${session.lastName}`.trim() : "";
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
 
   const TITLES: Record<string, string> = {
     "/": "ENDOD",
@@ -33,44 +38,88 @@ export function AppHeader() {
     pathname === "/" || pathname === "/(tabs)" || pathname === "/(tabs)/index" || pathname === "/index" || segment === "index";
   const title = TITLES[pathname] ?? TITLES["/(tabs)/" + segment] ?? TITLES["/" + segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
 
+  const containerStyle = {
+    height: 64,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(252,249,243,0.85)",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 4,
+  };
+
   if (isHome) {
     return (
-      <View className="bg-white border-b border-slate-200 px-4 py-3 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2.5">
-          <Image
-            source={require("../../assets/endod_logo.png")}
-            style={{ width: 36, height: 36 }}
-            resizeMode="contain"
-          />
-          <View>
-            <View className="flex-row items-baseline gap-1">
-              <Text className="text-base font-black tracking-tight text-slate-900">ENDOD</Text>
-              <Text className="text-base font-bold text-teal-600">Health</Text>
-            </View>
+      <>
+        <View style={containerStyle} className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0">
+            <Image
+              source={require("../../assets/endod_logo.png")}
+              style={{ width: 32, height: 32 }}
+              resizeMode="contain"
+            />
+            <Text
+              style={{ color: ON_SURFACE, fontSize: 18, lineHeight: 24, fontWeight: "700", fontFamily: "Newsreader-SemiBold" }}
+            >
+              ENDOD
+            </Text>
           </View>
+        <View className="flex-row items-center gap-1">
+          <Pressable
+            onPress={() => setLanguage(language === "en" ? "am" : "en")}
+            style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9999, borderWidth: 1, borderColor: "#E1BFBC", alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ color: ON_SURFACE, fontSize: 12, fontWeight: "600", fontFamily: "PlusJakartaSans-SemiBold" }}>{language === "en" ? "EN" : "AM"}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setEmergencyOpen(true)}
+            accessibilityLabel="Emergency"
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#BA1A1A", alignItems: "center", justifyContent: "center" }}
+          >
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+              <Path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
+            </Svg>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              signOut();
+              router.replace("/login");
+            }}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 9999,
+              borderWidth: 1,
+              borderColor: "#E1BFBC",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ color: ON_SURFACE, fontSize: 12, fontWeight: "600", fontFamily: "PlusJakartaSans-SemiBold" }}>{t("nav.signOut")}</Text>
+          </Pressable>
         </View>
-        <Pressable
-          onPress={() => {
-            signOut();
-            router.replace("/login");
-          }}
-          className="px-3 py-1.5 border border-[#DCE4E6] rounded-lg"
-        >
-          <Text className="text-xs font-medium text-[#25343D]">{t("nav.signOut")}</Text>
-        </Pressable>
       </View>
-    );
+      <EmergencyModal visible={emergencyOpen} onClose={() => setEmergencyOpen(false)} />
+    </>
+  );
   }
 
   return (
-    <View className="bg-white border-b border-slate-200 px-4 py-3 flex-row items-center justify-between">
-      <View className="flex-row items-center gap-2.5">
-        <Pressable onPress={() => router.replace("/(tabs)")} className="mr-2">
-          <Text className="text-xl font-bold text-[#18242B]">←</Text>
+    <View style={containerStyle} className="flex-row items-center justify-between">
+      <View className="flex-row items-center gap-2.5 flex-1 min-w-0">
+        <Pressable onPress={() => router.replace("/(tabs)")} style={{ marginRight: 8 }}>
+          <Text style={{ color: ON_SURFACE, fontSize: 22, fontWeight: "700" }}>←</Text>
         </Pressable>
-        <Text className="text-base font-bold text-slate-900">{title}</Text>
+        <Text
+          className="font-headline-sm"
+          style={{ color: ON_SURFACE, fontSize: 18, lineHeight: 24, fontWeight: "600", fontFamily: "Newsreader-SemiBold" }}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
       </View>
-      <View style={{ width: 110 }}>
+      <View style={{ width: 120 }}>
         <Select
           value={language === "en" ? "English" : "Amharic"}
           onValueChange={(v) => setLanguage(v === "English" ? "en" : "am")}
@@ -81,16 +130,3 @@ export function AppHeader() {
   );
 }
 
-function BellIcon({ color = "#475569" }: { color?: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}

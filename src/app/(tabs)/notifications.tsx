@@ -44,24 +44,37 @@ const CATEGORIES: {
   {
     id: "appointments", titleKey: "notifications.cat.appointments.title", labelKey: "notifications.cat.appointments.label",
     iconPath: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
-    iconWrap: "bg-[#F4F7F7] border border-[#F4F7F7]", iconColor: "text-[#25343D]",
+    iconWrap: "bg-[#f6f3ed] border border-[#f6f3ed]", iconColor: "text-[#59413f]",
   },
   {
     id: "records", titleKey: "notifications.cat.records.title", labelKey: "notifications.cat.records.label",
     iconPath: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
-    iconWrap: "bg-[#F4F7F7] border border-[#F4F7F7]", iconColor: "text-[#25343D]",
+    iconWrap: "bg-[#f6f3ed] border border-[#f6f3ed]", iconColor: "text-[#59413f]",
   },
   {
     id: "messages", titleKey: "notifications.cat.messages.title", labelKey: "notifications.cat.messages.label",
     iconPath: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
-    iconWrap: "bg-[#E8F0F8] border border-[#E8F0F8]", iconColor: "text-[#2463A6]",
+    iconWrap: "bg-[#f6f3ed] border border-[#f6f3ed]", iconColor: "text-[#423238]",
   },
   {
     id: "security", titleKey: "notifications.cat.security.title", labelKey: "notifications.cat.security.label",
     iconPath: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
-    iconWrap: "bg-[#B7791F]/10 border border-[#B7791F]/20", iconColor: "text-[#B7791F]",
+    iconWrap: "bg-[#8d706e]/10 border border-[#8d706e]/20", iconColor: "text-[#8d706e]",
   },
 ];
+
+const KIND_TITLE_KEY: Record<string, TranslationKey> = {
+  appointment_booked: "notifications.kind.appointmentBooked.title",
+  appointment_cancelled: "notifications.kind.appointmentCancelled.title",
+  appointment_moved: "notifications.kind.appointmentMoved.title",
+  password_changed: "notifications.kind.passwordChanged.title",
+};
+const KIND_BODY_KEY: Record<string, TranslationKey> = {
+  appointment_booked: "notifications.kind.appointmentBooked.body",
+  appointment_cancelled: "notifications.kind.appointmentCancelled.body",
+  appointment_moved: "notifications.kind.appointmentMoved.body",
+  password_changed: "notifications.kind.passwordChanged.body",
+};
 
 function destination(item: InboxItem): { nav: string; target: string | null } | null {
   if (item.link?.screen === "appointment") {
@@ -79,10 +92,10 @@ function destination(item: InboxItem): { nav: string; target: string | null } | 
   return null;
 }
 
-function timeAgo(iso: string, locale: string): string {
+function timeAgo(iso: string, locale: string, t: any): string {
   const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
   const abs = Math.abs(seconds);
-  if (abs < 60) return "just now";
+  if (abs < 60) return t("notifications.justNow");
   if (abs < 3600) return `${Math.round(abs / 60)}m`;
   if (abs < 86400) return `${Math.round(abs / 3600)}h`;
   return `${Math.round(abs / 86400)}d`;
@@ -191,16 +204,16 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         <View className="gap-6 pb-6">
           {/* Header */}
-          <View className="flex-col gap-4 pb-6 border-b border-[#DCE4E6]">
+          <View className="flex-col gap-4 pb-6 border-b border-[#e1bfbc]">
             <View>
               <View className="flex-row items-center gap-2">
-                <View className={`px-2 py-0.5 rounded-full border ${unread.total === 0 ? "bg-[#F4F7F7] border-[#DCE4E6]" : "bg-[#F4F7F7] border-[#DCE4E6]"}`}>
-                  <Text className="text-xs font-medium text-[#25343D]">{t("notifications.unreadCount", { count: unread.total })}</Text>
+                <View className={`px-2 py-0.5 rounded-full border ${unread.total === 0 ? "bg-[#f6f3ed] border-[#e1bfbc]" : "bg-[#f6f3ed] border-[#e1bfbc]"}`}>
+                  <Text className="text-xs font-medium text-[#59413f]">{t("notifications.unreadCount", { count: unread.total })}</Text>
                 </View>
               </View>
             </View>
-            <Pressable onPress={markAllRead} disabled={unread.total === 0} className="self-start px-3 py-1.5 border border-[#DCE4E6] rounded-lg bg-white">
-              <Text className="text-xs font-medium text-[#25343D]">{t("notifications.markAllRead")}</Text>
+            <Pressable onPress={markAllRead} disabled={unread.total === 0} className="self-start px-3 py-1.5 border border-[#e1bfbc] rounded-lg bg-white">
+              <Text className="text-xs font-medium text-[#59413f]">{t("notifications.markAllRead")}</Text>
             </Pressable>
           </View>
 
@@ -211,16 +224,16 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
                 <Pressable
                   key={pill.id}
                   onPress={() => setFilter(pill.id)}
-                  className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${filter === pill.id ? "bg-black" : "bg-white border border-[#DCE4E6]"}`}
+                  className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${filter === pill.id ? "bg-[#423238]" : "bg-white border border-[#e1bfbc]"}`}
                 >
-                  <Text className={`text-sm ${filter === pill.id ? "font-semibold text-white" : "font-medium text-[#25343D]"}`}>{pill.label}{pill.count ? ` (${pill.count})` : ""}</Text>
+                  <Text className={`text-sm ${filter === pill.id ? "font-semibold text-white" : "font-medium text-[#59413f]"}`}>{pill.label}{pill.count ? ` (${pill.count})` : ""}</Text>
                 </Pressable>
               ))}
             </View>
           </ScrollView>
 
           {loadError ? (
-            <Text className="text-xs text-[#B42318] bg-[#B42318]/10 border border-[#B42318]/20 rounded-lg px-3 py-2">{loadError}</Text>
+            <Text className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/10 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">{loadError}</Text>
           ) : null}
           {!items && !loadError && (
             <Skeleton className="gap-3" label={t("common.loading")}>
@@ -231,7 +244,7 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
             </Skeleton>
           )}
           {items && groups.length === 0 && !loadError && (
-            <Text className="text-xs text-[#25343D] bg-white border border-[#DCE4E6] rounded-2xl p-4">{t("notifications.empty")}</Text>
+            <Text className="text-xs text-[#59413f] bg-white border border-[#e1bfbc] rounded-2xl p-4">{t("notifications.empty")}</Text>
           )}
 
           {groups.map(({ category, entries }) => (
@@ -239,11 +252,11 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
               <View className="flex-row items-center justify-between px-1">
                 <View className="flex-row items-center gap-2">
                   <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                    <Path d={category.iconPath} stroke="#46545B" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <Path d={category.iconPath} stroke="#8d706e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                   </Svg>
-                  <Text className="text-xs font-semibold text-[#25343D] uppercase tracking-wider">{t(category.titleKey)}</Text>
+                  <Text className="text-xs font-semibold text-[#59413f] uppercase tracking-wider">{t(category.titleKey)}</Text>
                 </View>
-                <Text className="text-[11px] font-normal text-[#46545B] lowercase">
+                <Text className="text-[11px] font-normal text-[#8d706e] lowercase">
                   {t(entries.length === 1 ? "notifications.countOne" : "notifications.countOther", { count: entries.length })}
                 </Text>
               </View>
@@ -251,39 +264,43 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
               <View className="gap-2.5">
                 {entries.map((n) => {
                   const to = destination(n);
+                  const titleKey = KIND_TITLE_KEY[n.kind];
+                  const bodyKey = KIND_BODY_KEY[n.kind];
+                  const displayTitle = titleKey ? t(titleKey) : n.title;
+                  const displayBody = bodyKey ? t(bodyKey) : n.body;
                   return (
                     <Pressable
                       key={n.id}
                       onPress={() => open(n)}
-                      className="bg-white rounded-xl border border-[#DCE4E6] p-4"
+                      className="bg-white rounded-xl border border-[#e1bfbc] p-4"
                     >
                       <View className="flex-row items-start gap-3">
                         <View className={`w-9 h-9 rounded-lg items-center justify-center flex-shrink-0 mt-0.5 ${category.iconWrap}`}>
                           <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                            <Path d={category.iconPath} stroke={category.iconColor === "text-[#25343D]" ? "#25343D" : category.iconColor === "text-[#2463A6]" ? "#2463A6" : "#B7791F"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            <Path d={category.iconPath} stroke={category.iconColor === "text-[#59413f]" ? "#59413f" : category.iconColor === "text-[#423238]" ? "#423238" : "#8d706e"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                           </Svg>
                         </View>
                         <View className="flex-1 min-w-0">
                           <View className="flex-row items-center justify-between gap-2">
-                            <Text className="text-sm font-semibold text-[#18242B]">{n.title}</Text>
+                            <Text className="text-sm font-semibold text-[#1c1c18]">{displayTitle}</Text>
                             <View className="flex-row items-center gap-2 flex-shrink-0">
-                              <Text className="text-[11px] text-[#46545B]">{timeAgo(n.created_at, locale)}</Text>
-                              {!n.read && <View className="w-2 h-2 rounded-full bg-[#25343D]" />}
+                              <Text className="text-[11px] text-[#8d706e]">{timeAgo(n.created_at, locale, t)}</Text>
+                              {!n.read && <View className="w-2 h-2 rounded-full bg-[#59413f]" />}
                             </View>
                           </View>
-                          {n.body && <Text className="text-sm text-[#25343D] mt-1.5 leading-relaxed">{n.body}</Text>}
-                          <View className="mt-3 pt-3 border-t border-[#F4F7F7] flex-row flex-wrap items-center justify-end gap-2.5">
+                          {displayBody && <Text className="text-sm text-[#59413f] mt-1.5 leading-relaxed">{displayBody}</Text>}
+                          <View className="mt-3 pt-3 border-t border-[#f6f3ed] flex-row flex-wrap items-center justify-end gap-2.5">
                             {!n.read && !to && (
                               <Pressable onPress={(e) => { e?.stopPropagation?.(); markRead(n); }} className="px-2.5 py-1 rounded">
-                                <Text className="text-xs text-[#25343D]">{t("notifications.markRead")}</Text>
+                                <Text className="text-xs text-[#59413f]">{t("notifications.markRead")}</Text>
                               </Pressable>
                             )}
                             <Pressable onPress={(e) => { e?.stopPropagation?.(); void dismiss(n); }} className="px-2.5 py-1 rounded">
-                              <Text className="text-xs text-[#25343D]">{t("common.dismiss")}</Text>
+                              <Text className="text-xs text-[#59413f]">{t("common.dismiss")}</Text>
                             </Pressable>
                             {to && (
-                              <View className="px-3 py-1.5 rounded-lg bg-[#F4F7F7] border border-[#DCE4E6]">
-                                <Text className="text-xs font-medium text-[#25343D]">{to.nav === "appointment" ? t("notifications.viewInAppointments") : t("notifications.viewRecord")}</Text>
+                              <View className="px-3 py-1.5 rounded-lg bg-[#f6f3ed] border border-[#e1bfbc]">
+                                <Text className="text-xs font-medium text-[#59413f]">{to.nav === "appointment" ? t("notifications.viewInAppointments") : t("notifications.viewRecord")}</Text>
                               </View>
                             )}
                           </View>
@@ -298,8 +315,8 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
 
           {nextCursor && (
             <View className="items-center">
-              <Pressable onPress={loadMore} disabled={loadingMore} className="px-4 py-2 border border-[#DCE4E6] rounded-lg bg-white">
-                <Text className="text-xs font-semibold text-[#25343D]">{loadingMore ? t("common.loading") : t("notifications.loadMore")}</Text>
+              <Pressable onPress={loadMore} disabled={loadingMore} className="px-4 py-2 border border-[#e1bfbc] rounded-lg bg-white">
+                <Text className="text-xs font-semibold text-[#59413f]">{loadingMore ? t("common.loading") : t("notifications.loadMore")}</Text>
               </Pressable>
             </View>
           )}

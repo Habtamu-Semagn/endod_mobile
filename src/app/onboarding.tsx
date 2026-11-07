@@ -160,7 +160,7 @@ export default function OnboardingScreen() {
             <Field label="Middle Name" value={middleName} onChangeText={setMiddleName} placeholder="" />
             <Field label="Last Name" value={lastName} onChangeText={setLastName} placeholder="Everett" />
             {error ? <Text className="text-xs text-rose-500 mb-2">{error}</Text> : null}
-            <Button title="Continue" size="lg" onPress={handleContinue} />
+            <Button title="Continue" variant="dark" size="lg" onPress={handleContinue} />
           </View>
         ) : null}
 
@@ -185,14 +185,14 @@ export default function OnboardingScreen() {
                     {selected ? <Text className="text-white text-xs font-bold">✓</Text> : null}
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-slate-900">{opt.label}</Text>
-                    <Text className="text-xs text-slate-500 mt-0.5">{opt.hint}</Text>
+                    <Text className="text-sm font-semibold text-brand-heading">{opt.label}</Text>
+                    <Text className="text-xs text-brand-muted mt-0.5">{opt.hint}</Text>
                   </View>
                 </Pressable>
               );
             })}
             {error ? <Text className="text-xs text-rose-500 mb-2">{error}</Text> : null}
-            <Button title="Continue" size="lg" onPress={handleContinue} />
+            <Button title="Continue" variant="dark" size="lg" onPress={handleContinue} />
           </View>
         ) : null}
 
@@ -217,10 +217,10 @@ export default function OnboardingScreen() {
                 >
                   {sex === opt ? <View className="w-2.5 h-2.5 rounded-full bg-emerald-600" /> : null}
                 </View>
-                <Text className="text-sm font-semibold text-slate-900">{opt}</Text>
+                <Text className="text-sm font-semibold text-brand-heading">{opt}</Text>
               </Pressable>
             ))}
-            <Button title="Continue" size="lg" onPress={goNext} />
+            <Button title="Continue" variant="dark" size="lg" onPress={goNext} />
           </View>
         ) : null}
 
@@ -247,17 +247,17 @@ export default function OnboardingScreen() {
                     <View className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
                   ) : null}
                 </View>
-                <Text className="text-sm font-semibold text-slate-900">{opt.label}</Text>
+                <Text className="text-sm font-semibold text-brand-heading">{opt.label}</Text>
               </Pressable>
             ))}
-            <Button title="Continue" size="lg" onPress={goNext} />
+            <Button title="Continue" variant="dark" size="lg" onPress={goNext} />
           </View>
         ) : null}
 
         {/* Step 4 — emergency health card */}
         {step === 4 ? (
           <View>
-            <Text className="text-xs font-semibold text-slate-500 mb-1.5">Blood type (optional)</Text>
+            <Text className="text-xs font-semibold text-brand-muted mb-1.5">Blood type (optional)</Text>
             <View className="flex-row flex-wrap gap-2 mb-4">
               {BLOOD_TYPES.map((bt) => (
                 <Pressable
@@ -265,7 +265,7 @@ export default function OnboardingScreen() {
                   onPress={() => setBloodType(bt)}
                   className={`px-3 py-2 rounded-xl border ${bloodType === bt ? "bg-emerald-50 border-emerald-400" : "bg-white border-slate-200"}`}
                 >
-                  <Text className="text-sm font-semibold text-slate-900">{bt}</Text>
+                  <Text className="text-sm font-semibold text-brand-heading">{bt}</Text>
                 </Pressable>
               ))}
             </View>
@@ -279,12 +279,12 @@ export default function OnboardingScreen() {
               <View className={`w-5 h-5 rounded border items-center justify-center ${healthConsent ? "bg-emerald-600 border-emerald-600" : "border-slate-300"}`}>
                 {healthConsent ? <Text className="text-white text-xs">✓</Text> : null}
               </View>
-              <Text className="text-xs text-slate-600 flex-1">
+              <Text className="text-xs text-brand-muted flex-1">
                 I consent to storing my health details for emergency care.
               </Text>
             </Pressable>
 
-            <Button title="Finish" size="lg" onPress={goNext} />
+            <Button title="Finish" variant="dark" size="lg" onPress={goNext} />
           </View>
         ) : null}
       </ScrollView>
