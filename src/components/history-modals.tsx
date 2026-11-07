@@ -4,6 +4,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Select } from "./Select";
 import { BOOKING_HOSPITALS } from "../lib/data";
 import { api } from "../lib/api";
+import { useI18n } from "../lib/i18n";
+import { useToast } from "./ui/Toast";
+import { type ShareHospital } from "../lib/records/history-data";
 
 export function AddVisitModal({ onClose, onSaved }: { onClose: () => void; onOpenSettings?: () => void; onSaved?: () => void }) {
   const [hospitals, setHospitals] = useState<string[]>(BOOKING_HOSPITALS.map((h) => h.name));
@@ -157,26 +160,32 @@ export function AddVisitModal({ onClose, onSaved }: { onClose: () => void; onOpe
 }
 
 export function ShareModal({ items, onClose, onShared }: { items?: any; onClose: () => void; onShared?: (s: any) => void }) {
+  const { t, language } = useI18n();
+  const { showToast } = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
-  const [hospitals, setHospitals] = useState<{ hospital_id: string; name: string }[]>([]);
+  const [hospitals, setHospitals] = useState<ShareHospital[] | null>(null);
   const [hospitalId, setHospitalId] = useState("");
   const [shareUntil, setShareUntil] = useState("");
   const [showDate, setShowDate] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        const data = await api<{ hospitals: any[] }>("users/me/shares/hospitals");
-        const list = data?.hospitals ?? [];
-        setHospitals(list);
-        if (list.length) setHospitalId(list[0].hospital_id);
-      } catch {}
+        const data = await api<{ hospitals: ShareHospital[] }>("users/me/shares/hospitals");
+        if (cancelled) return;
+        setHospitals(data?.hospitals ?? []);
+      } catch {
+        if (cancelled) return;
+        setHospitals([]);
+        setError(t("share.error.load"));
+      }
     })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable per language
   }, []);
-
-  const hospital = hospitals.find((h) => h.hospital_id === hospitalId)?.name ?? "";
 
   const list = Array.isArray(items) ? items : [];
   const filtered = list.filter((it: any) => !query || String(it.title ?? "").toLowerCase().includes(query.toLowerCase()));
@@ -195,11 +204,11 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
   const handleShare = async () => {
     setError("");
     if (!hospitalId) {
-      setError("Please choose a partner hospital.");
+      setError(t("share.error.hospital"));
       return;
     }
     if (selected.size === 0) {
-      setError("Please choose at least one record.");
+      setError(t("share.error.none"));
       return;
     }
     try {
@@ -211,9 +220,11 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
           expires_at: shareUntil ? new Date(shareUntil).toISOString() : null,
         },
       });
-      onShared?.({ hospital_name: hospital, ...result });
+      const hospitalName = hospitals?.find((h) => h.hospital_id === hospitalId)?.name ?? "";
+      showToast(t("share.toastTitle"), t("share.toast", { hospital: hospitalName }));
+      onShared?.({ hospital_name: hospitalName, ...result });
     } catch (e: any) {
-      setError(e?.message ?? "Sharing failed");
+      setError(e?.message ?? t("common.somethingWrong"));
     }
   };
 
@@ -222,7 +233,7 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
       <View className="flex-1 bg-[#1c1c18]/60 items-center justify-center p-4">
         <View className="bg-white rounded-3xl w-full max-w-lg p-6 border border-[#e1bfbc] max-h-[95%]">
           <View className="flex-row items-center justify-between pb-3 border-b border-[#f6f3ed]">
-            <Text className="text-base font-bold text-[#1c1c18]">Share records with a hospital</Text>
+            <Text className="text-base font-bold text-[#1c1c18]">{t("share.title")}</Text>
             <Pressable onPress={onClose} className="p-1.5 rounded-lg">
               <Text className="text-[#8d706e] text-lg">✕</Text>
             </Pressable>
@@ -275,18 +286,34 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
             </ScrollView>
 
             <View className="mt-4">
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Choose partner hospital</Text>
-              {hospitals.length === 0 ? (
+              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">{t("share.hospital")}</Text>
+              {hospitals === null ? (
+                <Text className="text-xs text-[#59413f]">{t("common.loading")}</Text>
+              ) : hospitals.length === 0 ? (
                 <Text className="text-xs text-rose-500">No partner hospitals available.</Text>
               ) : (
-                <Select
-                  value={hospital}
-                  onValueChange={(v) => {
-                    const h = hospitals.find((x) => x.name === v);
-                    if (h) setHospitalId(h.hospital_id);
-                  }}
-                  options={hospitals.map((h) => h.name)}
-                />
+                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled className="rounded-xl border border-[#e1bfbc]">
+                  {hospitals.map((h) => {
+                    const active = h.hospital_id === hospitalId;
+                    return (
+                      <Pressable
+                        key={h.hospital_id}
+                        onPress={() => setHospitalId(h.hospital_id)}
+                        className={`flex-row items-center gap-3 px-3 py-2 border-b border-[#f6f3ed] ${active ? "bg-[#f6f3ed]" : ""}`}
+                      >
+                        <View className={`w-5 h-5 rounded-full border items-center justify-center ${active ? "border-[#423238]" : "border-[#e1bfbc]"}`}>
+                          {active ? <View className="w-2.5 h-2.5 rounded-full bg-[#423238]" /> : null}
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-sm font-semibold text-[#1c1c18]">
+                            {(language === "am" && h.name_am) || h.name}
+                          </Text>
+                          {h.city ? <Text className="text-xs text-[#59413f]">{h.city}</Text> : null}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               )}
             </View>
 
