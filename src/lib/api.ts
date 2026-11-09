@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number = 0, readonly details?: unknown) {
@@ -6,12 +6,37 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = Platform.OS === "web" ? "http://localhost:8000" : "http://10.161.94.61:8000";
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? "https://api.endod-health.com/patient/v1";
+
+const TOKEN_KEY = "endod_access_token";
 
 let authToken: string | null = null;
+let tokenLoaded = false;
+let onUnauthorized: (() => void) | null = null;
+
+export function setOnUnauthorized(cb: (() => void) | null) {
+  onUnauthorized = cb;
+}
+
+export async function ensureTokenLoaded() {
+  if (tokenLoaded) return;
+  try {
+    authToken = await SecureStore.getItemAsync(TOKEN_KEY);
+  } catch {
+    authToken = null;
+  }
+  tokenLoaded = true;
+}
 
 export function setAuthToken(token: string | null) {
   authToken = token;
+  tokenLoaded = true;
+  if (token) {
+    SecureStore.setItemAsync(TOKEN_KEY, token).catch(() => {});
+  } else {
+    SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+  }
 }
 
 export function getAuthToken() {
@@ -19,6 +44,8 @@ export function getAuthToken() {
 }
 
 export async function api<T = any>(path: string, options: any = {}): Promise<T> {
+  await ensureTokenLoaded();
+
   const method = (options.method ?? "GET").toUpperCase();
   const p = path.replace(/^\/+/, "");
   const url = `${API_BASE_URL}/${p}`;
@@ -40,6 +67,11 @@ export async function api<T = any>(path: string, options: any = {}): Promise<T> 
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 401) {
+      const hadToken = !!authToken;
+      setAuthToken(null);
+      if (hadToken) onUnauthorized?.();
+    }
     const message =
       typeof data?.detail === "string"
         ? data.detail

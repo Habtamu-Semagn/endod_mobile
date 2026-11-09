@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform, ImageBackground } from "react-native";
+import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform, ImageBackground, useWindowDimensions } from "react-native";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { captureRef } from "react-native-view-shot";
 import * as Print from "expo-print";
@@ -16,10 +16,28 @@ import { useFocusEffect } from "expo-router";
 import { useToast } from "../../components/ui/Toast";
 import { LinearGradient } from "expo-linear-gradient";
 
+const MOVING_CARDS = [
+  require("../../../assets/images/appointment/moving_appointment_1.png"),
+  require("../../../assets/images/appointment/moving_appointment_2.png"),
+  require("../../../assets/images/appointment/moving_appointment_3.png"),
+  require("../../../assets/images/appointment/moving_appointment_4.png"),
+];
+
 export default function HealthCardScreen() {
   const { session } = useSession();
   const { showToast } = useToast();
   const { t } = useI18n();
+  const { width } = useWindowDimensions();
+  const cardWidth = width - 32;
+  const moveRef = useRef<any>(null);
+  const moveIndex = useRef(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      moveIndex.current = (moveIndex.current + 1) % MOVING_CARDS.length;
+      moveRef.current?.scrollTo({ x: moveIndex.current * (cardWidth + 12), animated: true });
+    }, 4000);
+    return () => clearInterval(id);
+  }, [cardWidth]);
   const [qrOpen, setQrOpen] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
@@ -55,6 +73,7 @@ export default function HealthCardScreen() {
   const userId = profile?.dedan_user_id ?? DEFAULT_PROFILE.patientId;
   const phone = profile?.phone ?? session?.phone ?? DEFAULT_PROFILE.phone;
   const address = profile?.address_line ?? DEFAULT_PROFILE.address;
+  const city = profile?.city ?? "";
   const emergencyPhone = healthProfile?.emergency_contact_phone ?? phone;
 
   const age = healthProfile?.age_years != null ? String(healthProfile.age_years) : (healthProfile?.age_range ?? "—");
@@ -237,6 +256,22 @@ export default function HealthCardScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["bottom"]}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        {/* Auto-moving message cards */}
+        <ScrollView
+          ref={moveRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 12, paddingBottom: 12 }}
+        >
+          {MOVING_CARDS.map((img, i) => (
+            <Image
+              key={i}
+              source={img}
+              style={{ width: cardWidth, height: cardWidth * 5 / 12, borderRadius: 16 }}
+              resizeMode="cover"
+            />
+          ))}
+        </ScrollView>
 
         {/* ===== Digital Health Card ===== */}
         <View ref={cardRef} collapsable={false} style={{ marginTop: 48 }}>
@@ -257,7 +292,7 @@ export default function HealthCardScreen() {
             </Svg>
           </View>
 
-          <View style={{ flex: 1, padding: 16, justifyContent: "space-between" }}>
+          <View style={{ flex: 1, padding: 16, paddingBottom: 32, justifyContent: "space-between" }}>
             {/* Top row: brand, name, id, contactless */}
             <View className="flex-row items-start justify-between gap-3">
               <View className="flex-1 min-w-0">
@@ -289,8 +324,8 @@ export default function HealthCardScreen() {
             </View>
 
             {/* Bottom row: fields + QR */}
-            <View className="flex-row items-end justify-between gap-3">
-              <View className="flex-1" style={{ gap: 6 }}>
+            <View className="flex-row items-end justify-between gap-3" style={{ marginBottom: 8 }}>
+              <View className="flex-1" style={{ gap: 6, marginTop: 8 }}>
                 <View className="flex-row" style={{ gap: 16 }}>
                   <View className="flex-1">
                     <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Phone</Text>
@@ -303,7 +338,7 @@ export default function HealthCardScreen() {
                 </View>
                 <View>
                   <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Address</Text>
-                  <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }} numberOfLines={2}>{address}</Text>
+                  <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }} numberOfLines={2}>{city || address}</Text>
                 </View>
                 <View className="flex-row" style={{ gap: 16 }}>
                   <View className="flex-1">

@@ -3,11 +3,13 @@ import { Pressable, ScrollView, Switch, Text, TextInput, View, Alert } from "rea
 import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useSession } from "../../lib/session";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { api, ApiError, passwordProblem, setAuthToken } from "../../lib/api";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { Bone, FieldBones, Skeleton } from "../../components/skeleton";
 import { Select } from "../../components/Select";
+import { Passkey } from "react-native-passkey";
 import {
   BLOOD_TYPES, formatPhoneDisplay, invalidateHealthCard, splitAllergies, type ProfileForCard,
 } from "../../lib/health-card/health-card-data";
@@ -87,6 +89,7 @@ const STRENGTH_COLORS = ["text-[#8d706e]", "text-[#ba1a1a]", "text-[#8d706e]", "
 export default function SettingsScreen({ onToast = (title: string, message?: string) => Alert.alert(title, message), onProfileChange = () => {}, hideTitle }: Props) {
   const { t } = useI18n();
   const router = useRouter();
+  const { signOut } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -117,6 +120,9 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
 
+  const [passkeys, setPasskeys] = useState<any[]>([]);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+
   const applyPersonal = useCallback((p: Profile) => {
     setFirstName(p.first_name ?? "");
     setMiddleName(p.middle_name ?? "");
@@ -137,7 +143,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
     applyLocation(p);
   }, [applyPersonal, applyLocation]);
 
-  const applyHealth = (h: HealthProfile) => {
+  const applyHealth = useCallback((h: HealthProfile) => {
     setHealth(h);
     setEmergencyName(h.emergency_contact_name ?? "");
     setEmergencyPhone(h.emergency_contact_phone ?? "");
@@ -147,7 +153,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
       d.setFullYear(d.getFullYear() - h.age_years);
       setDateOfBirth(d.toISOString().slice(0, 10));
     }
-  };
+  }, []);
 
   const loadHealth = useCallback(async () => {
     try {
@@ -166,6 +172,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
         if (cancelled) return;
         applyProfile(p);
         if (p.consent?.treatment_processing) void loadHealth().catch(() => {});
+        void api<{ passkeys: any[] }>("users/me/passkeys").then((d) => { if (!cancelled) setPasskeys(d?.passkeys ?? []); }).catch(() => {});
       })
       .catch((error) => {
         if (!cancelled) setLoadError(message(error, t("settings.error.load")));
@@ -173,6 +180,76 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
     return () => { cancelled = true; };
   }, [applyProfile, loadHealth, t]);
 
+  const addPasskey = async () => {
+    if (!Passkey.isSupported()) {
+      onToast("Passkeys", "This device doesn't support passkeys.");
+      return;
+    }
+    setPasskeyBusy(true);
+    try {
+      let opts: any;
+      try {
+        opts = await api("users/me/passkeys/registration/options", { method: "POST", body: {} });
+      } catch (e: any) {
+        if (e?.status === 428) {
+          const pwd = await new Promise<string>((resolve) => {
+            Alert.prompt?.("Recent sign-in required", "Enter your current password to add a passkey.", (v: string) => resolve(v ?? ""), "plain-text");
+          });
+          if (!pwd) { setPasskeyBusy(false); return; }
+          opts = await api("users/me/passkeys/registration/options", { method: "POST", body: { current_password: pwd } });
+        } else throw e;
+      }
+      const credential = await Passkey.create(opts?.options ?? opts);
+      const name = (typeof navigator !== "undefined" ? (navigator as any).userAgent : "") || "This device";
+      await api("users/me/passkeys/registration/verify", { method: "POST", body: { credential, name } });
+      const d = await api<{ passkeys: any[] }>("users/me/passkeys");
+      setPasskeys(d?.passkeys ?? []);
+      onToast("Passkey added", "You can now sign in with this device.");
+    } catch (e: any) {
+      if (e?.error !== "UserCancelled" && !String(e?.message ?? "").toLowerCase().includes("cancel")) {
+        onToast("Could not add passkey", e?.message ?? "Try again.");
+      }
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
+
+  const deletePasskey = async (id: string) => {
+    Alert.alert("Remove passkey", "Remove this passkey?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove", style: "destructive", onPress: async () => {
+          setPasskeyBusy(true);
+          try {
+            await api(`users/me/passkeys/${id}`, { method: "DELETE" });
+            setPasskeys((prev) => prev.filter((p) => p.id !== id));
+            onToast("Passkey removed", "Removed.");
+          } catch (e: any) {
+            if (e?.status === 428) {
+              // ask password
+              Alert.prompt?.("Recent sign-in required", "Enter your current password.", async (pwd: string) => {
+                if (!pwd) return;
+                setPasskeyBusy(true);
+                try {
+                  await api(`users/me/passkeys/${id}`, { method: "DELETE", body: { current_password: pwd } });
+                  setPasskeys((prev) => prev.filter((p) => p.id !== id));
+                  onToast("Passkey removed", "Removed.");
+                } catch (err: any) {
+                  onToast("Could not remove", err?.message ?? "Try again.");
+                } finally {
+                  setPasskeyBusy(false);
+                }
+              }, "plain-text");
+            } else {
+              onToast("Could not remove", e?.message ?? "Try again.");
+            }
+          } finally {
+            setPasskeyBusy(false);
+          }
+        },
+      },
+    ]);
+  };
   const saveProfile = async () => {
     if (!firstName.trim() && !middleName.trim() && !lastName.trim() && !email.trim()) {
       onToast("Missing input", "Please fill the input element you want to update.");
@@ -679,6 +756,45 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Passkeys */}
+        <View className="bg-white rounded-2xl border border-[#e1bfbc] p-4 mt-4">
+          <Text className="text-sm font-bold text-[#1c1c18] mb-3">Passkeys</Text>
+          {passkeys.length === 0 ? (
+            <Text className="text-xs text-[#59413f] mb-3">No passkeys on this account yet.</Text>
+          ) : (
+            <View className="gap-2 mb-3">
+              {passkeys.map((p: any) => (
+                <View key={p.id} className="flex-row items-center justify-between py-2 border-b border-[#f6f3ed]">
+                  <View className="flex-1 min-w-0">
+                    <Text className="text-sm font-semibold text-[#1c1c18]" numberOfLines={1}>{p.name}</Text>
+                    <Text className="text-xs text-[#8d706e]">{p.blocked ? "Blocked" : "Active"}</Text>
+                  </View>
+                  <Pressable onPress={() => deletePasskey(p.id)} disabled={passkeyBusy} className="px-3 py-1.5 rounded-lg border border-rose-200">
+                    <Text className="text-xs font-semibold text-rose-700">Remove</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
+          {Passkey.isSupported() ? (
+            <Pressable onPress={addPasskey} disabled={passkeyBusy} className="w-full py-2.5 rounded-xl bg-[#423238] items-center">
+              <Text className="text-sm font-semibold text-white">{passkeyBusy ? "Working…" : "Add passkey"}</Text>
+            </Pressable>
+          ) : (
+            <Text className="text-xs text-[#8d706e]">This device doesn&apos;t support passkeys.</Text>
+          )}
+        </View>
+
+        {/* Sign out */}
+        <View className="mt-2">
+          <Pressable
+            onPress={() => { signOut(); router.replace("/login"); }}
+            className="w-full py-3 rounded-xl border border-[#e1bfbc] bg-white items-center"
+          >
+            <Text className="text-sm font-semibold text-[#ba1a1a]">Sign out</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

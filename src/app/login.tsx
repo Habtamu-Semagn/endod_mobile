@@ -15,6 +15,7 @@ import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
 import { api } from "../lib/api";
+import { Passkey } from "react-native-passkey";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,7 +24,40 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [passkeySubmitting, setPasskeySubmitting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const handlePasskeySignIn = async () => {
+    setError("");
+    setPasskeySubmitting(true);
+    try {
+      const opts = await api("auth/passkey/options", { method: "POST" });
+      console.log("passkey options:", JSON.stringify(opts));
+      const challengeId = opts?.challenge_id;
+      const options = opts?.options;
+      const credential = await Passkey.get(options);
+      const data = await api("auth/passkey/verify", {
+        method: "POST",
+        body: { challenge_id: challengeId, credential },
+      });
+      const token = data?.access_token ?? null;
+      const profile = data?.profile ?? {};
+      signIn(profile?.phone ?? data?.dedan_user_id ?? "", token);
+      const onboarded = profile?.onboarding_complete;
+      router.replace(onboarded ? "/(tabs)/booking" : "/onboarding");
+    } catch (e: any) {
+      console.log("passkey error:", JSON.stringify(e));
+      if (e?.error === "UserCancelled" || e?.message?.toLowerCase().includes("cancel")) {
+        // dismissed prompt — not an error
+      } else if (e?.error === "NoCredentials") {
+        setError("No passkey found on this device. Sign in with your phone number and password.");
+      } else {
+        setError(e?.message ?? e?.error ?? "We couldn't sign you in with that passkey. Try again, or use your phone number and password.");
+      }
+    } finally {
+      setPasskeySubmitting(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setError("");
@@ -41,7 +75,7 @@ export default function LoginScreen() {
       const token = data?.access_token ?? null;
       signIn(phone.trim(), token);
       const onboarded = data?.profile?.onboarding_complete;
-      router.replace(onboarded ? "/(tabs)" : "/onboarding");
+      router.replace(onboarded ? "/(tabs)/booking" : "/onboarding");
     } catch (e: any) {
       setError(e?.message ?? "Login failed");
     } finally {
@@ -99,6 +133,18 @@ export default function LoginScreen() {
             {error ? <Text className="text-xs text-rose-500 mb-3 -mt-1">{error}</Text> : null}
 
             <Button title="Sign In" variant="dark" size="lg" loading={submitting} onPress={handleSubmit} />
+
+            {Passkey.isSupported() ? (
+              <Pressable
+                onPress={handlePasskeySignIn}
+                disabled={passkeySubmitting}
+                className="mt-3 flex-row items-center justify-center gap-2 rounded-2xl border border-brand-border bg-white py-3"
+              >
+                <Text className="text-sm font-semibold text-brand-heading">
+                  {passkeySubmitting ? "Signing in…" : "Sign in with passkey"}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
 
           {/* Footer */}

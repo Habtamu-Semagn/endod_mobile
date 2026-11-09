@@ -1,0 +1,18 @@
+0 verbose cli /home/hab/.nvm/versions/node/v22.23.3/bin/node /home/hab/.nvm/versions/node/v22.23.3/bin/npm
+1 info using npm@12.1.0
+2 info using node@v22.23.3
+3 silly config load:file:/home/hab/.nvm/versions/node/v22.23.3/lib/node_modules/npm/npmrc
+4 silly config load:file:/home/hab/Desktop/endod_mobile/.npmrc
+5 silly config load:file:/home/hab/.npmrc
+6 silly config load:file:/home/hab/.nvm/versions/node/v22.23.3/etc/npmrc
+7 verbose title npm notice run eslint /home/hab/Desktop/endod_mobile/src
+8 verbose argv "notice" "run" "eslint" "/home/hab/Desktop/endod_mobile/src" "--fix" "false" "--cache" "true" "--cache-location" "/home/hab/Desktop/endod_mobile/.expo/cache/eslint/"
+9 verbose logfile logs-max:10 dir:/home/hab/Desktop/endod_mobile/true/_logs/2026-11-09T13_12_59_410Z-
+10 verbose logfile /home/hab/Desktop/endod_mobile/true/_logs/2026-11-09T13_12_59_410Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose cwd /home/hab/Desktop/endod_mobile
+13 verbose os Linux 6.12.113+deb13-amd64
+14 verbose node v22.23.3
+15 verbose npm  v12.1.0
+16 verbose exit 1
+17 verbose code 1

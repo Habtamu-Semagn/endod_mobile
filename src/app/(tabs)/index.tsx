@@ -14,7 +14,6 @@ const IMG = {
   bills: require("../../../assets/images/home/bills.png"),
   records: require("../../../assets/images/home/medical_records.png"),
   notifications: require("../../../assets/images/home/notification.png"),
-  settings: require("../../../assets/images/home/settings.png"),
   appointmentImg: require("../../../assets/images/home/appointment.png"),
   doctor: "https://lh3.googleusercontent.com/aida/ALJJyrByIcXP_KQm9GCkjQOr7bsTvPq1I8GdW7cAwjV0Gb-t8tK9mo3wQZD0MyWT0HsENhsd9o6JGJXANTJ7XTJWYbRunqZzK9IKTcAzZDwybdyKme7r8diZxscd0imf5325syarY-u9ZtGP5eLtEqoJHp4L-_PruHQ83X_31lfC2yE3H3zleWX7xvbLi7vMX0-CcguNzHrzbcqP3SWwMzYNhBoV-k-8mAhVgVyXARDjz__5",
 };
@@ -42,7 +41,7 @@ export default function HomeScreen() {
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, []);
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
   const upcoming = (appointments ?? []).filter((a) => ACTIVE_STATUSES.includes(a.status) && new Date(a.scheduled_at).getTime() + (a.duration_minutes || 30) * 60_000 >= now).length;
   const nextAppt = (appointments ?? []).find((a) => ACTIVE_STATUSES.includes(a.status) && new Date(a.scheduled_at).getTime() + (a.duration_minutes || 30) * 60_000 >= now) ?? null;
 
@@ -53,7 +52,6 @@ export default function HomeScreen() {
     { id: "records", label: t("home.shortcut.followup.title"), sub: `${recordsCount} ${t("home.shortcut.records.hint")}`, href: "/(tabs)/records", image: IMG.records },
     { id: "notifications", label: t("home.shortcut.message.title"), sub: `${unreadCount} ${t("home.shortcut.notifications.hint")}`, href: "/(tabs)/notifications", image: IMG.notifications, badge: unreadCount > 0 ? `${unreadCount} unread` : undefined },
     { id: "bills", label: t("bills.title"), sub: t("home.shortcut.bills.hint"), href: "/(tabs)/bills", image: IMG.bills },
-    { id: "settings", label: t("home.shortcut.settings.title"), sub: t("home.shortcut.settings.hint"), href: "/(tabs)/settings", image: IMG.settings },
   ];
 
   const SURFACE = "#FCF9F3";

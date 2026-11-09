@@ -23,8 +23,9 @@ export function EmergencyModal({ visible, onClose }: { visible: boolean; onClose
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-[#1c1c18]/60 justify-end" onPress={onClose}>
-        <Pressable className="bg-white rounded-t-3xl px-5 pt-4 pb-8 max-h-[92%]" onPress={() => {}}>
+      <View className="flex-1 justify-end">
+        <Pressable className="absolute inset-0 bg-[#1c1c18]/60" onPress={onClose} />
+        <View className="bg-white rounded-t-3xl px-5 pt-4 pb-8 max-h-[92%]">
           <View className="w-10 h-1 rounded-full bg-[#e1bfbc] self-center mb-4" />
           <View className="flex-row items-start justify-between mb-4">
             <View>
@@ -75,8 +76,9 @@ pts.forEach(function(p){ L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name); }
             })()}
           </View>
 
-          <ScrollView style={{ maxHeight: 320 }}>
-            <Text className="text-sm font-bold text-[#1c1c18] mb-2">{t("emergency.nearby")}</Text>
+          <View style={{ height: 320, overflow: "hidden" }}>
+            <ScrollView nestedScrollEnabled showsVerticalScrollIndicator>
+              <Text className="text-sm font-bold text-[#1c1c18] mb-2">{t("emergency.nearby")}</Text>
             {BOOKING_HOSPITALS.map((h) => (
               <View key={h.id} className="rounded-2xl border border-[#e1bfbc] p-3.5 mb-2">
                 <Text className="text-sm font-bold text-[#1c1c18]">{h.name}</Text>
@@ -94,8 +96,9 @@ pts.forEach(function(p){ L.marker([p.lat,p.lng]).addTo(map).bindPopup(p.name); }
               </View>
             ))}
           </ScrollView>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
+      </View>
     </Modal>
   );
 }

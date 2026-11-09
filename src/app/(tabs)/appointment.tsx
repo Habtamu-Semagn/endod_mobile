@@ -157,6 +157,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
   }, [load]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch
     void loadQueue();
     const id = setInterval(() => void loadQueue(), 15000);
     return () => clearInterval(id);
@@ -296,7 +297,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
     return (
       <View
         key={a.appointment_id}
-        className={`bg-white rounded-2xl border p-4 gap-3 ${cancelled ? "opacity-60" : ""} ${highlighted ? "border-[#1c1c18]" : "border-[#e1bfbc]"}`}
+        className={`bg-white rounded-2xl border p-4 gap-3 ${highlighted ? "border-[#1c1c18]" : "border-[#e1bfbc]"}`}
       >
         <View className="flex-row items-center gap-4">
           <View className="w-10 h-10 rounded-xl border border-[#e1bfbc] bg-[#f6f3ed] items-center justify-center flex-shrink-0">
@@ -394,7 +395,7 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
             </View>
           )
         ) : (
-          <View className={`px-3 py-1 rounded-lg flex-shrink-0 border ${
+          <View className={`px-3 py-1 rounded-lg flex-shrink-0 border ml-auto ${
             cancelled ? "bg-[#ffdad6] border-rose-200"
               : a.status === "COMPLETED" ? "bg-[#f6f3ed] border-[#e1bfbc]"
               : "bg-[#f6f3ed] border-[#e1bfbc]"
@@ -452,17 +453,6 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
           )}
         </View>
         <View className="gap-6 pb-6">
-          {/* Title */}
-          <View className="flex-col gap-4 pb-2 border-b border-[#e1bfbc]">
-            <View>
-              <View className="flex-row items-center gap-3">
-                <View className="px-2.5 py-0.5 rounded-full bg-[#f6f3ed] border border-[#e1bfbc]">
-                  <Text className="text-xs font-semibold text-[#1c1c18]">{t("appointments.scheduledCount", { count: counts.upcoming })}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
           <QueueCard />
 
           {/* Stat cards */}

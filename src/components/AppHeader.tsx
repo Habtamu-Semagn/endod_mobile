@@ -1,7 +1,7 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image, Pressable, Text, View } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import Svg, { Path } from "react-native-svg";
-import { useSession } from "../lib/session";
 import { useI18n } from "../lib/i18n";
 import { Select } from "./Select";
 import { useState } from "react";
@@ -12,9 +12,9 @@ const ON_SURFACE = "#1C1C18";
 const ON_SURFACE_VARIANT = "#59413F";
 
 export function AppHeader() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
-  const { signOut } = useSession();
   const { language, setLanguage, t } = useI18n();
   const unread = NOTIFICATIONS.filter((n) => n.unread).length;
   const [emergencyOpen, setEmergencyOpen] = useState(false);
@@ -39,8 +39,9 @@ export function AppHeader() {
   const title = TITLES[pathname] ?? TITLES["/(tabs)/" + segment] ?? TITLES["/" + segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
 
   const containerStyle = {
-    height: 64,
-    paddingHorizontal: 16,
+    height: 64 + insets.top,
+    paddingTop: insets.top,
+    paddingHorizontal: 12,
     backgroundColor: "rgba(252,249,243,0.85)",
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 1 },
@@ -80,28 +81,11 @@ export function AppHeader() {
         <Pressable
           onPress={() => setEmergencyOpen(true)}
           accessibilityLabel="Emergency"
-          style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#BA1A1A", alignItems: "center", justifyContent: "center" }}
+          style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#BA1A1A", alignItems: "center", justifyContent: "center" }}
         >
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
             <Path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
           </Svg>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            signOut();
-            router.replace("/login");
-          }}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 9999,
-            borderWidth: 1,
-            borderColor: "#E1BFBC",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ color: ON_SURFACE, fontSize: 12, fontWeight: "600", fontFamily: "PlusJakartaSans-SemiBold" }}>{t("nav.signOut")}</Text>
         </Pressable>
       </View>
     </View>

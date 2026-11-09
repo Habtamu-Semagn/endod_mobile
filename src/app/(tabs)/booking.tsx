@@ -27,11 +27,18 @@ import { Button, Card, Chip } from "../../components/ui";
 import { Field, Sheet } from "../../components/ui/Field";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Select } from "../../components/Select";
-import { useI18n } from "../../lib/i18n";
+import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { useToast } from "../../components/ui/Toast";
 import { useSession } from "../../lib/session";
 import * as Location from "expo-location";
 import { api } from "../../lib/api";
+
+const SPECIALTY_KEY: Record<string, TranslationKey> = {
+  "Cardiology": "booking.specialty.cardiology",
+  "General Medicine": "booking.specialty.generalMedicine",
+  "Emergency & Trauma": "booking.specialty.emergencyTrauma",
+  "Pediatrics": "booking.specialty.pediatrics",
+};
 
 export default function BookingScreen() {
   const { showToast } = useToast();
@@ -130,7 +137,7 @@ export default function BookingScreen() {
     return list;
   }, [query, department, ownershipFilter, hospitals, sort, coords]);
 
-  const useMyLocation = async () => {
+  const fetchMyLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -145,7 +152,8 @@ export default function BookingScreen() {
   };
 
   useEffect(() => {
-    if (sort === "distance" && !coords) void useMyLocation();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetches location on demand
+    if (sort === "distance" && !coords) void fetchMyLocation();
   }, [sort, coords]);
 
   const openBooking = (facility: Hospital) => {
@@ -233,23 +241,32 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
             className="w-full px-3 py-2 text-sm rounded-xl border border-[#e1bfbc] text-[#1c1c18]"
             placeholderTextColor="#8d706e"
           />
-          <View className="flex-row mt-3 gap-2">
-            <View className="flex-1">
+          <View className="flex-row mt-3 justify-between items-center">
+            <View>
               <Select
-                value={department === "" ? "All specialties" : department}
-                onValueChange={(v) => setDepartment(v === "All specialties" ? "" : v)}
-                options={["All specialties", ...SPECIALTY_FILTERS.slice(1)]}
+                dialog
+                value={department === "" ? t("booking.allSpecialties") : t((SPECIALTY_KEY[department] ?? "booking.allSpecialties") as TranslationKey)}
+                onValueChange={(v) => {
+                  if (v === t("booking.allSpecialties")) setDepartment("");
+                  else {
+                    const found = Object.entries(SPECIALTY_KEY).find(([, k]) => t(k as TranslationKey) === v);
+                    setDepartment(found ? found[0] : v);
+                  }
+                }}
+                options={[t("booking.allSpecialties"), ...SPECIALTY_FILTERS.slice(1).map((s) => t(SPECIALTY_KEY[s] as TranslationKey))]}
               />
             </View>
-            <View className="flex-1">
+            <View>
               <Select
+                dialog
                 value={ownershipFilter === "all" ? t("booking.allFacilities") : ownershipFilter === "private" ? t("booking.private") : t("booking.public")}
                 onValueChange={(v) => setOwnershipFilter(v === t("booking.allFacilities") ? "all" : v === t("booking.private") ? "private" : "public")}
                 options={[t("booking.allFacilities"), t("booking.private"), t("booking.public")]}
               />
             </View>
-            <View className="flex-1">
+            <View>
               <Select
+                dialog
                 value={sort === "name" ? t("booking.sortName") : t("booking.sortDistance")}
                 onValueChange={(v) => setSort(v === t("booking.sortName") ? "name" : "distance")}
                 options={[t("booking.sortName"), t("booking.sortDistance")]}
@@ -259,7 +276,7 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
         </View>
 
         {/* Map */}
-        <Pressable onPress={useMyLocation} className="mb-2 self-end">
+        <Pressable onPress={fetchMyLocation} className="mb-2 self-end">
           <Text className="text-sm text-brand-primary underline">Use my location</Text>
         </Pressable>
         <View style={{ height: 450, borderRadius: 16, overflow: "hidden", marginBottom: 12, borderWidth: 1, borderColor: "#e1bfbc", zIndex: 0, elevation: 0 }}>

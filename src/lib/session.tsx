@@ -2,12 +2,15 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { DEFAULT_PROFILE } from "./data";
-import { setAuthToken } from "./api";
+import { useRouter } from "expo-router";
+import { setAuthToken, setOnUnauthorized, ensureTokenLoaded, getAuthToken } from "./api";
+import { api } from "./api";
 
 export type Session = {
   phone: string;
@@ -40,7 +43,47 @@ type SessionValue = {
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      setSession(null);
+      setAuthToken(null);
+      router.replace("/login");
+    });
+    return () => setOnUnauthorized(null);
+  }, [router]);
+
+  // Restore session from a persisted token so users stay logged in.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await ensureTokenLoaded();
+      if (!getAuthToken()) return;
+      try {
+        const data = await api<{ profile: any }>("/auth/session");
+        const p = data?.profile;
+        if (cancelled || !p) return;
+        setSession({
+          phone: p.phone ?? "",
+          token: getAuthToken(),
+          firstName: p.first_name ?? "",
+          middleName: p.middle_name ?? "",
+          lastName: p.last_name ?? "",
+          lookingFor: [],
+          sex: "",
+          ageRange: "",
+          onboarded: p.onboarding_complete ?? true,
+        });
+      } catch {
+        setAuthToken(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const signIn = useCallback((phone: string, token: string | null = null) => {
     if (token) setAuthToken(token);

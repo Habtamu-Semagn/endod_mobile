@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, Pressable, type ColorValue } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { AppHeader } from "../../components/AppHeader";
@@ -56,6 +57,7 @@ function TabIcon({ name, color }: { name: string; color: ColorValue }) {
 
 export default function TabsLayout() {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   return (
     <View className="flex-1" style={{ backgroundColor: "transparent" }}>
       <Tabs
@@ -76,7 +78,7 @@ export default function TabsLayout() {
             paddingHorizontal: 8,
             height: 72,
             marginHorizontal: 16,
-            marginBottom: 16,
+            marginBottom: 16 + insets.bottom,
             borderRadius: 9999,
             borderWidth: 1,
             borderColor: OUTLINE_VARIANT,
@@ -105,13 +107,6 @@ export default function TabsLayout() {
         }}
       >
         <Tabs.Screen
-          name="index"
-          options={{
-            title: t("tab.overview"),
-            tabBarIcon: ({ color }) => <TabIcon name="overview" color={color} />,
-          }}
-        />
-        <Tabs.Screen
           name="card"
           options={{
             title: t("tab.card"),
@@ -123,6 +118,13 @@ export default function TabsLayout() {
           options={{
             title: t("tab.booking"),
             tabBarIcon: ({ color }) => <TabIcon name="booking" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: t("tab.home"),
+            tabBarIcon: ({ color }) => <TabIcon name="overview" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -144,7 +146,6 @@ export default function TabsLayout() {
           options={{
             title: t("tab.settings"),
             tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
-            tabBarItemStyle: { display: "none" },
           }}
         />
         <Tabs.Screen
