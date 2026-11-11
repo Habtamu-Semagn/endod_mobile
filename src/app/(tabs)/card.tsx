@@ -1,5 +1,5 @@
-import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform, ImageBackground, useWindowDimensions } from "react-native";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform, ImageBackground } from "react-native";
+import { useState, useRef, useCallback } from "react";
 import { captureRef } from "react-native-view-shot";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -16,28 +16,10 @@ import { useFocusEffect } from "expo-router";
 import { useToast } from "../../components/ui/Toast";
 import { LinearGradient } from "expo-linear-gradient";
 
-const MOVING_CARDS = [
-  require("../../../assets/images/appointment/moving_appointment_1.png"),
-  require("../../../assets/images/appointment/moving_appointment_2.png"),
-  require("../../../assets/images/appointment/moving_appointment_3.png"),
-  require("../../../assets/images/appointment/moving_appointment_4.png"),
-];
-
 export default function HealthCardScreen() {
   const { session } = useSession();
   const { showToast } = useToast();
   const { t } = useI18n();
-  const { width } = useWindowDimensions();
-  const cardWidth = width - 32;
-  const moveRef = useRef<any>(null);
-  const moveIndex = useRef(0);
-  useEffect(() => {
-    const id = setInterval(() => {
-      moveIndex.current = (moveIndex.current + 1) % MOVING_CARDS.length;
-      moveRef.current?.scrollTo({ x: moveIndex.current * (cardWidth + 12), animated: true });
-    }, 4000);
-    return () => clearInterval(id);
-  }, [cardWidth]);
   const [qrOpen, setQrOpen] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
@@ -256,30 +238,13 @@ export default function HealthCardScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["bottom"]}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-        {/* Auto-moving message cards */}
-        <ScrollView
-          ref={moveRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12, paddingBottom: 12 }}
-        >
-          {MOVING_CARDS.map((img, i) => (
-            <Image
-              key={i}
-              source={img}
-              style={{ width: cardWidth, height: cardWidth * 5 / 12, borderRadius: 16 }}
-              resizeMode="cover"
-            />
-          ))}
-        </ScrollView>
-
         {/* ===== Digital Health Card ===== */}
         <View ref={cardRef} collapsable={false} style={{ marginTop: 48 }}>
         <LinearGradient
           colors={["#423238", "#2b1f22", "#000000"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ width: "100%", aspectRatio: 1.586, borderRadius: 16, overflow: "hidden" }}
+          style={{ width: "100%", aspectRatio: 1.4, borderRadius: 16, overflow: "hidden" }}
         >
           {/* Sheen */}
           <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.05)" }} />
@@ -361,37 +326,6 @@ export default function HealthCardScreen() {
         </LinearGradient>
         </View>
 
-        {/* Download options */}
-        <View className="mt-12">
-          <View className="flex-col gap-3">
-            <Pressable
-              onPress={downloadPdf}
-              disabled={busy}
-              className="w-full flex-row items-center justify-center gap-2 py-3 px-4 rounded-full active:opacity-90"
-              style={{ backgroundColor: "#423238", opacity: busy ? 0.6 : 1 }}
-            >
-              {savingPdf ? <ActivityIndicator color="#ffffff" /> : (
-                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.5}>
-                  <Path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2M5 10l7 7 7-7M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
-              )}
-              <Text className="text-white font-medium text-sm">{savingPdf ? t("card.downloading.pdf") : t("card.download.pdf")}</Text>
-            </Pressable>
-            <Pressable
-              onPress={downloadImage}
-              disabled={busy}
-              className="w-full flex-row items-center justify-center gap-2 py-3 px-4 rounded-full active:opacity-90"
-              style={{ backgroundColor: "#423238", opacity: busy ? 0.6 : 1 }}
-            >
-              {savingImage ? <ActivityIndicator color="#ffffff" /> : (
-                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.5}>
-                  <Path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2M5 10l7 7 7-7M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
-              )}
-              <Text className="text-white font-medium text-sm">{savingImage ? t("card.downloading.image") : t("card.download.image")}</Text>
-            </Pressable>
-          </View>
-        </View>
 
         {/* Show QR */}
         <View className="mt-6 items-center">

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,8 +14,7 @@ import Svg, { Path } from "react-native-svg";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
-import { api } from "../lib/api";
-import { setAuthToken } from "../lib/api";
+import { api, setAuthToken } from "../lib/api";
 
 const STRENGTH_LABELS = ["Too short", "Weak", "Fair", "Strong", "Very strong"];
 const STRENGTH_BAR_COLORS = ["bg-slate-200", "bg-rose-400", "bg-amber-400", "bg-emerald-500", "bg-emerald-600"];
@@ -68,21 +68,49 @@ export default function SetPasswordScreen() {
         router.replace("/login");
       }
     } catch (e: any) {
+      const code = (e as any)?.details?.code;
+      if (e?.status === 409 && ((e as any)?.details?.restore_with === "verification_token" || code === "account_pending_deletion")) {
+        try {
+          const r = await api("/auth/restore", { method: "POST", body: { verification_token: token, password, password_confirmation: confirm } });
+          const accessToken = r?.access_token ?? null;
+          if (accessToken) setAuthToken(accessToken);
+          const onboarded = r?.profile?.onboarding_complete;
+          router.replace(onboarded ? "/(tabs)" : "/onboarding");
+          return;
+        } catch (err: any) {
+          setError(err?.message ?? "Restore failed");
+          return;
+        }
+      }
       setError(e?.message ?? "Failed to set password");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
+        enabled
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+        style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: keyboardVisible ? -60 : 0 }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           className="px-6 py-8"
         >
           <View className="items-center mb-8">

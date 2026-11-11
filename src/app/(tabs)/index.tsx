@@ -1,5 +1,6 @@
 import { Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -54,6 +55,24 @@ export default function HomeScreen() {
     { id: "bills", label: t("bills.title"), sub: t("home.shortcut.bills.hint"), href: "/(tabs)/bills", image: IMG.bills },
   ];
 
+  const { width } = useWindowDimensions();
+  const cardWidth = width - 32;
+  const movingCards = [
+    { badge: "HEALTH CARD", title: "Your Digital Health ID", link: "View your health card", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDVKZZ04Ldk4yrZTQxz3jycLzvSiSybyozoQbBrPGrjWHBM_TRTiM-dI7upw6-6brV2OgPhTIKu5Dy3rvO-HGNFEn0rPms9hmfAuSCW-26Fha6y2jiEa2YRmC2P0C7D7HvHWw20y9h_SGnIRDhNDchHgZo_C5sbgtx6v-NNvvEslIe6W3sCroE7ZYlpCltD5RemwXzGv39Q4eRPW8Ke3slInn72XHb8DhuLF1FtihAu", activeDot: 0 },
+    { badge: "APPOINTMENTS", title: "Manage Your Appointments", link: "View upcoming visits", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBvdDNF387dzvZp4Rm9hqQda-qzI9aJ77Y2zruR2p-rbqR84yUMVMIFGkvWJOCv2Bvpum5wY46xlmFZP7yHgbfjWskiakXlRUIlYbjZlY3onasLr3uSDHUDrVkGVgKgW-RpIB7WUWHAnIaZdvLCNoMYI_fsSKCmv5h0vuhKvJG14K8qc9MoIdDzvhT5oMrmJFgLWS--dpDoxvxic-GKQ8oa_SaiMWMuylbqsKNYkvJ3", activeDot: 1 },
+    { badge: "BOOKING", title: "Find Care Near You", link: "Book a hospital visit", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA2SdjCvKU1ewqqBWV3S2UAZQIFeHgN80OCxXne7u8XebnIJN9dLVFkJYyfzSEFh833ohjeiVC8s2acKmtL_lS0k4BAC1qDnG8VdVHsz8ncNdBG4R_RK8NpErJGHHZfYer11-F6CdqbN6F2anpn8QFY43eSxyjBKrtrBIwdR6vGM0Je9za6rciAbBCUPWE92QhWe-c59YiDjjIhKtFLcQt4zBicmtA5VrfDE4L4v1h-", activeDot: 2 },
+    { badge: "RECORDS", title: "Your Medical Records", link: "View your history", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBbvKmoDL7-d2kKo7MrZjkESqVJxtp4SL-2SznjGpiWuMVLDK2fhobwJaslrPkJa4-45uzWH5Ad6I1PT8R7cN4dRQ_M6QCD3Bi16-kongo7qpwd6Nd3DxPQwSEAdz6yZFW12U5yYSY0J19So-9WHGZC-bi3rRKCP_9vUjVTdjxMdlGht6RJuOdgjD4WeUx1_b8eYQ1ft6_wpmxuUw_2s4WSd2vJxajSdlDU5DcQ1aq7", activeDot: 3 },
+  ];
+  const moveRef = useRef<any>(null);
+  const moveIndex = useRef(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      moveIndex.current = (moveIndex.current + 1) % movingCards.length;
+      moveRef.current?.scrollTo({ x: moveIndex.current * (cardWidth + 12), animated: true });
+    }, 1800);
+    return () => clearInterval(id);
+  }, [cardWidth, movingCards.length]);
+
   const SURFACE = "#FCF9F3";
   const ON_SURFACE = "#1C1C18";
   const ON_SURFACE_VARIANT = "#59413F";
@@ -69,6 +88,35 @@ export default function HomeScreen() {
           <Text style={{ color: ON_SURFACE, fontSize: 30, lineHeight: 36, fontWeight: "500", letterSpacing: -0.3, fontFamily: "Newsreader-Medium" }}>
             Welcome back, <Text style={{ fontStyle: "italic", fontWeight: "400", fontFamily: "Newsreader-Italic" }}>{firstName || "there"}.</Text>
           </Text>
+        </View>
+
+        {/* Auto-moving care service cards */}
+        <View className="mt-4">
+          <ScrollView ref={moveRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12, paddingBottom: 12 }}>
+            {movingCards.map((c, i) => (
+              <View
+                key={i}
+                className="relative overflow-hidden active:scale-[0.99]"
+                style={{ width: cardWidth, backgroundColor: "#F0EEE8", borderRadius: 28, borderWidth: 1, borderColor: "#E0BFBC", padding: 20, shadowColor: "#59413F", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 14, elevation: 2 }}
+              >
+                  <View style={{ width: "62%", paddingRight: 8 }}>
+                    <Text style={{ color: "#1C1C18", fontSize: 17, fontWeight: "600", lineHeight: 24 }}>{c.title}</Text>
+                  <View className="flex-row items-center mt-2.5">
+                    <Text style={{ color: "#59413F", fontSize: 13, fontWeight: "500" }}>{c.link}</Text>
+                    <Text style={{ color: "#59413F", fontSize: 13, marginLeft: 2 }}>›</Text>
+                  </View>
+                  <View className="flex-row items-center pt-4" style={{ gap: 6 }}>
+                    {[0,1,2,3,4].map((d) => (
+                      <View key={d} style={{ height: 6, width: d === c.activeDot ? 20 : 6, borderRadius: 3, backgroundColor: d === c.activeDot ? "#423238" : "#E0BFBC" }} />
+                    ))}
+                  </View>
+                </View>
+                <View style={{ position: "absolute", right: -12, top: 0, bottom: 0, width: 144 }}>
+                  <Image source={{ uri: c.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
         {nextAppt && (
@@ -95,15 +143,15 @@ export default function HomeScreen() {
             <Text style={{ color: ON_SURFACE, fontSize: 18, fontWeight: "600", fontFamily: "Newsreader-SemiBold" }}>Care Services</Text>
             <Text style={{ color: ON_SURFACE_VARIANT, fontSize: 11, fontWeight: "500", fontFamily: "PlusJakartaSans-Medium" }}>{cards.length} curated hubs</Text>
           </View>
-          <View style={{ gap: 12 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 20 }}>
             {cards.map((c) => (
               <Pressable
                 key={c.id}
                 onPress={() => router.push(c.href as any)}
                 className="rounded-2xl overflow-hidden active:scale-[0.99]"
-                style={{ backgroundColor: "#FFFFFF", shadowColor: "#2A2521", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 14, elevation: 2 }}
+                style={{ width: 260, backgroundColor: "#FFFFFF", shadowColor: "#2A2521", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 14, elevation: 2 }}
               >
-                <View className="relative w-full h-40 overflow-hidden" style={{ backgroundColor: "#F0EEE8" }}>
+                <View className="relative w-full h-64 overflow-hidden" style={{ backgroundColor: "#F0EEE8" }}>
                   <Image source={typeof c.image === "number" ? c.image : { uri: c.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                   {c.badge && (
                     <View className="absolute top-3 left-3 px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(252,249,243,0.9)" }}>
@@ -127,7 +175,7 @@ export default function HomeScreen() {
                 </View>
               </Pressable>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
       </ScrollView>

@@ -5,8 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api, ApiError } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { Bone, Skeleton } from "../../components/skeleton";
-import { QueueCard } from "../../components/care-cards";
-import { FollowUpCards } from "../../components/care-cards";
+import { QueueCard, FollowUpCards } from "../../components/care-cards";
 import {
   type BookingPreset, CATEGORY_LABEL, type HistoryResponse,
   type Share, TABS,

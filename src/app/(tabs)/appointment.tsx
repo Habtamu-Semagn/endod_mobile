@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { Svg, Path } from "react-native-svg";
@@ -71,29 +71,10 @@ function localDateInput(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-const MOVING_CARDS = [
-  require("../../../assets/images/appointment/moving_appointment_1.png"),
-  require("../../../assets/images/appointment/moving_appointment_2.png"),
-  require("../../../assets/images/appointment/moving_appointment_3.png"),
-  require("../../../assets/images/appointment/moving_appointment_4.png"),
-];
-
 export default function AppointmentScreen({ highlightTarget, onToast = () => {}, onBook = () => {}, hideTitle }: Props) {
   const { t, locale } = useI18n();
-  const { width } = useWindowDimensions();
-  const cardWidth = width - 32;
-  const movingCards = MOVING_CARDS;
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([]);
-  const moveRef = useRef<any>(null);
-  const moveIndex = useRef(0);
-  useEffect(() => {
-    const id = setInterval(() => {
-      moveIndex.current = (moveIndex.current + 1) % movingCards.length;
-      moveRef.current?.scrollTo({ x: moveIndex.current * (cardWidth + 12), animated: true });
-    }, 4000);
-    return () => clearInterval(id);
-  }, [cardWidth, movingCards]);
   const [loadError, setLoadError] = useState("");
   const [tab, setTab] = useState<Tab>("upcoming");
   const [typeFilter, setTypeFilter] = useState<"all" | "in_person" | "telehealth">("all");
@@ -421,22 +402,6 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
   return (
     <View className="flex-1 bg-app">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-        {/* Auto-moving message cards */}
-        <ScrollView
-          ref={moveRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12, paddingBottom: 12 }}
-        >
-          {movingCards.map((img, i) => (
-            <Image
-              key={i}
-              source={img}
-              style={{ width: cardWidth, height: cardWidth * 5 / 12, borderRadius: 16 }}
-              resizeMode="cover"
-            />
-          ))}
-        </ScrollView>
         {/* Queue status */}
         <View className="mb-4">
           <Text className="text-sm font-semibold text-[#1c1c18] mb-2">{t("appointments.queue.title")}</Text>
@@ -561,33 +526,29 @@ export default function AppointmentScreen({ highlightTarget, onToast = () => {},
                     </Pressable>
                   </View>
                 </View>
-                <View className="flex-row flex-wrap">
-                  {weekdays.map((d) => <Text key={d} className="w-[14.28%] text-center text-[11px] font-semibold text-[#8d706e] mb-2">{d}</Text>)}
+                <View className="flex-row flex-wrap gap-x-1">
+                  {weekdays.map((d) => <Text key={d} className="w-[13%] text-center text-[11px] font-semibold text-[#8d706e] mb-2">{d}</Text>)}
                 </View>
-                <View className="flex-row flex-wrap">
-                  {Array.from({ length: leadingBlanks }, (_, i) => <View key={`blank-${i}`} className="w-[14.28%]" />)}
+                <View className="flex-row flex-wrap gap-x-1 gap-y-1">
+                  {Array.from({ length: leadingBlanks }, (_, i) => <View key={`blank-${i}`} className="w-[13%]" />)}
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
                     const key = dateKey(new Date(month.getFullYear(), month.getMonth(), day));
                     const mode = busyDays.get(key);
-                    let cls = "w-[14.28%] p-2 text-center text-xs text-[#59413f] rounded-lg";
-                    if (key === todayKey) cls = "w-[14.28%] p-2 text-center text-xs rounded-lg border-2 border-[#8d706e] font-bold text-[#1c1c18]";
-                    if (mode) cls = mode === "telehealth" && videoVisits
-                      ? "w-[14.28%] p-2 text-center text-xs rounded-lg bg-[#e1bfbc] text-[#1c1c18] font-bold"
-                      : "w-[14.28%] p-2 text-center text-xs rounded-lg bg-black text-white font-bold";
+                    let cls = "w-[13%] p-2 mb-1 text-center text-xs text-[#59413f] rounded-lg";
+                    if (mode) cls = "w-[13%] p-2 mb-1 text-center text-xs rounded-lg bg-[#AD292F] text-white font-bold";
+                    if (key === todayKey) cls = "w-[13%] p-2 mb-1 text-center text-xs rounded-lg bg-[#E1BFBC] text-[#1C1C18] font-bold";
                     return <Text key={key} className={cls}>{day}</Text>;
                   })}
                 </View>
                 <View className="mt-4 pt-3 border-t border-[#f6f3ed] flex-row items-center gap-4">
                   <View className="flex-row items-center gap-1.5">
-                    <View className="w-2.5 h-2.5 rounded-full bg-black" />
+                    <View className="w-2.5 h-2.5 rounded-full bg-[#AD292F]" />
                     <Text className="text-[11px] text-[#59413f]">{t("appointments.legendInPerson")}</Text>
                   </View>
-                  {videoVisits && (
-                    <View className="flex-row items-center gap-1.5">
-                      <View className="w-2.5 h-2.5 rounded-full bg-[#e1bfbc] border border-[#8d706e]" />
-                      <Text className="text-[11px] text-[#59413f]">{t("appointments.legendTelehealth")}</Text>
-                    </View>
-                  )}
+                  <View className="flex-row items-center gap-1.5">
+                    <View className="w-2.5 h-2.5 rounded-full bg-[#E1BFBC] border border-[#8d706e]" />
+                    <Text className="text-[11px] text-[#59413f]">Today</Text>
+                  </View>
                 </View>
               </View>
             </View>

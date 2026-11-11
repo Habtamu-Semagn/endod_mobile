@@ -54,17 +54,13 @@ export function AppHeader() {
     <>
       <View style={containerStyle} className="flex-row items-center justify-between">
       <View className="flex-row items-center gap-2.5 flex-1 min-w-0">
-        {isHome ? (
+        <Pressable onPress={isHome ? undefined : () => router.replace("/(tabs)")} style={{ marginRight: 8 }}>
           <Image
             source={require("../../assets/endod_logo.png")}
             style={{ width: 32, height: 32 }}
             resizeMode="contain"
           />
-        ) : (
-          <Pressable onPress={() => router.replace("/(tabs)")} style={{ marginRight: 8 }}>
-            <Text style={{ color: ON_SURFACE, fontSize: 22, fontWeight: "700" }}>←</Text>
-          </Pressable>
-        )}
+        </Pressable>
         <Text
           style={{ color: ON_SURFACE, fontSize: 18, lineHeight: 24, fontWeight: "700", fontFamily: "Newsreader-SemiBold" }}
         >
@@ -72,16 +68,16 @@ export function AppHeader() {
         </Text>
       </View>
       <View className="flex-row items-center gap-1">
-        <Pressable
-          onPress={() => setLanguage(language === "en" ? "am" : "en")}
-          style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9999, borderWidth: 1, borderColor: "#E1BFBC", alignItems: "center", justifyContent: "center" }}
-        >
+          <Pressable
+            onPress={() => setLanguage(language === "en" ? "am" : "en")}
+            style={{ height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: "#E1BFBC", alignItems: "center", justifyContent: "center" }}
+          >
           <Text style={{ color: ON_SURFACE, fontSize: 12, fontWeight: "600", fontFamily: "PlusJakartaSans-SemiBold" }}>{language === "en" ? "EN" : "AM"}</Text>
         </Pressable>
         <Pressable
           onPress={() => setEmergencyOpen(true)}
           accessibilityLabel="Emergency"
-          style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#BA1A1A", alignItems: "center", justifyContent: "center" }}
+          style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#BA1A1A", alignItems: "center", justifyContent: "center" }}
         >
           <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
             <Path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />

@@ -9,8 +9,7 @@ import {
 } from "react";
 import { DEFAULT_PROFILE } from "./data";
 import { useRouter } from "expo-router";
-import { setAuthToken, setOnUnauthorized, ensureTokenLoaded, getAuthToken } from "./api";
-import { api } from "./api";
+import { api, setAuthToken, setOnUnauthorized, ensureTokenLoaded, getAuthToken } from "./api";
 
 export type Session = {
   phone: string;

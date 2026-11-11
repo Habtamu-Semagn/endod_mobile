@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -71,15 +72,29 @@ export default function VerifyOtpScreen() {
 
   const masked = maskPhone(phone);
 
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
+        enabled
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+        style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: keyboardVisible ? -60 : 0 }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           className="px-6 py-8"
         >
           <View className="items-center mb-8">

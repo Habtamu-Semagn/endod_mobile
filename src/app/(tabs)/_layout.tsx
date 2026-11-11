@@ -107,17 +107,17 @@ export default function TabsLayout() {
         }}
       >
         <Tabs.Screen
-          name="card"
-          options={{
-            title: t("tab.card"),
-            tabBarIcon: ({ color }) => <TabIcon name="card" color={color} />,
-          }}
-        />
-        <Tabs.Screen
           name="booking"
           options={{
             title: t("tab.booking"),
             tabBarIcon: ({ color }) => <TabIcon name="booking" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="card"
+          options={{
+            title: t("tab.card"),
+            tabBarIcon: ({ color }) => <TabIcon name="card" color={color} />,
           }}
         />
         <Tabs.Screen

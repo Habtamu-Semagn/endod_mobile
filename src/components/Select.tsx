@@ -37,7 +37,7 @@ export function Select({ value, onValueChange, options, className = "", triggerT
 
   return (
     <View className={`relative ${className}`} style={{ zIndex: 1000, elevation: 1000 }}>
-      <Pressable ref={triggerRef} onPress={openDropdown} className="flex-row items-center justify-start border border-[#e1bfbc] rounded-lg px-3 py-1.5">
+      <Pressable ref={triggerRef} onPress={openDropdown} className="flex-row items-center justify-start gap-2 border border-[#e1bfbc] rounded-lg px-3 py-1.5">
         <Text className={`${triggerTextClassName}`} numberOfLines={1}>
           {value}
         </Text>

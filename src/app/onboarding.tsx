@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -40,6 +40,16 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { completeOnboarding } = useSession();
   const [step, setStep] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const [error, setError] = useState("");
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -122,7 +132,18 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 pt-4 pb-8">
+      <KeyboardAvoidingView
+        enabled
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, marginTop: keyboardVisible ? -40 : 0 }}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          className="px-6 pt-4 pb-8"
+        >
         {/* Header */}
         <View className="flex-row items-center justify-between mb-5">
           {step > 0 ? (
@@ -288,6 +309,7 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

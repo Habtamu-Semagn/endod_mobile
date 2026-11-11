@@ -51,6 +51,7 @@ export default function BookingScreen() {
   const [ownershipFilter, setOwnershipFilter] = useState<"all" | "private" | "public">("all");
   const [sort, setSort] = useState<"name" | "distance">("name");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [mapReload, setMapReload] = useState(0);
   const [hospitals, setHospitals] = useState<Hospital[]>(BOOKING_HOSPITALS);
   useEffect(() => {
     (async () => {
@@ -90,6 +91,7 @@ export default function BookingScreen() {
   }, []);
 
   const [selected, setSelected] = useState<Hospital | null>(null);
+  const [mapTouching, setMapTouching] = useState(false);
   const [booked, setBooked] = useState<Hospital | null>(null);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
@@ -146,6 +148,7 @@ export default function BookingScreen() {
       }
       const loc = await Location.getCurrentPositionAsync({});
       setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      setMapReload((v) => v + 1);
     } catch {
       showToast?.("Could not get your location");
     }
@@ -208,9 +211,9 @@ const center = coords ? `[${coords.latitude},${coords.longitude}]` : "[9.03,38.7
 const mapHtml = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>html,body,#map{height:100%;margin:0;padding:0;}</style></head><body><div id="map"></div>
+<style>html,body,#map{height:100%;margin:0;padding:0;touch-action:none;} .leaflet-container{touch-action:none !important;-webkit-user-select:none;user-select:none;} #map{touch-action:none;}</style></head><body><div id="map"></div>
 <script>
-var map=L.map('map').setView(${center},13);
+var map=L.map('map',{zoomControl:true,touchZoom:true,tap:true,dragging:true}).setView(${center},13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
 ${coords ? `L.circleMarker([${coords.latitude},${coords.longitude}],{color:'#AD292F',radius:8}).addTo(map).bindPopup('You are here');` : ""}
 var pts=${JSON.stringify(facilities.map((h) => ({ id: h.id, name: h.name, lat: h.latitude, lng: h.longitude })))};
@@ -231,7 +234,7 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
 
   return (
     <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+      <ScrollView scrollEnabled={!mapTouching} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
         {/* Search */}
         <View className="bg-white p-4 rounded-2xl border border-[#e1bfbc] mb-3" style={{ zIndex: 1000, elevation: 10 }}>
           <TextInput
@@ -241,7 +244,7 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
             className="w-full px-3 py-2 text-sm rounded-xl border border-[#e1bfbc] text-[#1c1c18]"
             placeholderTextColor="#8d706e"
           />
-          <View className="flex-row mt-3 justify-between items-center">
+          <View className="flex-row mt-3 flex-wrap gap-2 items-center">
             <View>
               <Select
                 dialog
@@ -279,11 +282,16 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
         <Pressable onPress={fetchMyLocation} className="mb-2 self-end">
           <Text className="text-sm text-brand-primary underline">Use my location</Text>
         </Pressable>
-        <View style={{ height: 450, borderRadius: 16, overflow: "hidden", marginBottom: 12, borderWidth: 1, borderColor: "#e1bfbc", zIndex: 0, elevation: 0 }}>
+        <View
+          onTouchStart={() => setMapTouching(true)}
+          onTouchEnd={() => setMapTouching(false)}
+          onTouchCancel={() => setMapTouching(false)}
+          style={{ height: 450, borderRadius: 16, overflow: "hidden", marginBottom: 12, borderWidth: 1, borderColor: "#e1bfbc", zIndex: 0, elevation: 0 }}
+        >
           {typeof document !== "undefined" ? (
-            <iframe title="Hospitals map" srcDoc={mapHtml} style={{ width: "100%", height: "100%", border: 0 }} />
+            <iframe key={`map-${mapReload}`} title="Hospitals map" srcDoc={mapHtml} style={{ width: "100%", height: "100%", border: 0 }} />
           ) : (
-            <WebView style={{ flex: 1 }} originWhitelist={["*"]} source={{ html: mapHtml }} onMessage={(e) => { const h = facilities.find((x) => x.id === e.nativeEvent.data); if (h) openBooking(h); }} />
+            <WebView key={`map-${mapReload}`} style={{ flex: 1 }} scrollEnabled={false} originWhitelist={["*"]} source={{ html: mapHtml }} onMessage={(e) => { const h = facilities.find((x) => x.id === e.nativeEvent.data); if (h) openBooking(h); }} />
           )}
         </View>
 

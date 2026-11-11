@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View, Alert } from "react-native";
+import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View, Alert } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -10,6 +10,8 @@ import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { Bone, FieldBones, Skeleton } from "../../components/skeleton";
 import { Select } from "../../components/Select";
 import { Passkey } from "react-native-passkey";
+import { PasskeyModal } from "../../components/PasskeyModal";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import {
   BLOOD_TYPES, formatPhoneDisplay, invalidateHealthCard, splitAllergies, type ProfileForCard,
 } from "../../lib/health-card/health-card-data";
@@ -122,6 +124,15 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
 
   const [passkeys, setPasskeys] = useState<any[]>([]);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [passkeyModalVisible, setPasskeyModalVisible] = useState(false);
+  const [deleteDataModalVisible, setDeleteDataModalVisible] = useState(false);
+  const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
+  const [deleteAccountBusy, setDeleteAccountBusy] = useState(false);
+  const [deleteAccountUseSms, setDeleteAccountUseSms] = useState(false);
+  const [deleteAccountPhoneCode, setDeleteAccountPhoneCode] = useState("");
+  const [deleteAccountVerificationToken, setDeleteAccountVerificationToken] = useState("");
 
   const applyPersonal = useCallback((p: Profile) => {
     setFirstName(p.first_name ?? "");
@@ -190,6 +201,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
       let opts: any;
       try {
         opts = await api("users/me/passkeys/registration/options", { method: "POST", body: {} });
+        console.log("passkey reg options:", JSON.stringify(opts));
       } catch (e: any) {
         if (e?.status === 428) {
           const pwd = await new Promise<string>((resolve) => {
@@ -206,8 +218,11 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
       setPasskeys(d?.passkeys ?? []);
       onToast("Passkey added", "You can now sign in with this device.");
     } catch (e: any) {
+      console.log("passkey add error:", JSON.stringify(e));
       if (e?.error !== "UserCancelled" && !String(e?.message ?? "").toLowerCase().includes("cancel")) {
         onToast("Could not add passkey", e?.message ?? "Try again.");
+      } else {
+        onToast("Passkey", "Passkey setup was cancelled.");
       }
     } finally {
       setPasskeyBusy(false);
@@ -250,6 +265,71 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
       },
     ]);
   };
+  const deleteUserData = async () => {
+    setDeleteAccountVisible(true);
+    setDeleteAccountPassword("");
+    setDeleteAccountConfirm("");
+    setDeleteAccountUseSms(false);
+    setDeleteAccountPhoneCode("");
+    setDeleteAccountVerificationToken("");
+  };
+
+  const requestDeleteSmsCode = async () => {
+    setDeleteAccountBusy(true);
+    try {
+      await api("/auth/phone/request-code", { method: "POST", body: { phone: profile?.phone } });
+      onToast("Code sent", "Enter the code sent to your phone.");
+    } catch (e: any) {
+      onToast("Could not send code", e?.message ?? "Try again.");
+    } finally {
+      setDeleteAccountBusy(false);
+    }
+  };
+
+  const verifyDeleteSmsCode = async () => {
+    if (deleteAccountPhoneCode.length !== 6) return;
+    setDeleteAccountBusy(true);
+    try {
+      const data = await api("/auth/phone/verify", { method: "POST", body: { phone: profile?.phone, code: deleteAccountPhoneCode } });
+      setDeleteAccountVerificationToken(data?.verification_token ?? "");
+      onToast("Verified", "Now confirm deletion.");
+    } catch (e: any) {
+      onToast("Could not verify", e?.message ?? "Try again.");
+    } finally {
+      setDeleteAccountBusy(false);
+    }
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (deleteAccountConfirm !== "DELETE") {
+      onToast("Confirmation required", 'Type "DELETE" to confirm.');
+      return;
+    }
+    setDeleteAccountBusy(true);
+    try {
+      const body: any = { confirm: "DELETE" };
+      if (deleteAccountUseSms && deleteAccountVerificationToken) body.verification_token = deleteAccountVerificationToken;
+      else body.current_password = deleteAccountPassword;
+      const res = await api("/users/me/delete", { method: "POST", body });
+      setDeleteAccountVisible(false);
+      // forget token
+      setAuthToken(null);
+      signOut();
+      Alert.alert("Account deleted", `Your account was deleted. Your data will be erased for good on ${res?.erase_after ?? "30 days"}. Sign in before then to restore it.`);
+      router.replace("/login");
+    } catch (e: any) {
+      if (e?.status === 428) {
+        onToast("Recent sign-in required", "Enter your password and try again.");
+      } else if (e?.status === 403) {
+        onToast("Wrong password", e?.message ?? "Try again.");
+      } else {
+        onToast("Could not delete account", e?.message ?? "Try again.");
+      }
+    } finally {
+      setDeleteAccountBusy(false);
+    }
+  };
+
   const saveProfile = async () => {
     if (!firstName.trim() && !middleName.trim() && !lastName.trim() && !email.trim()) {
       onToast("Missing input", "Please fill the input element you want to update.");
@@ -779,7 +859,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
             </View>
           )}
           {Passkey.isSupported() ? (
-            <Pressable onPress={addPasskey} disabled={passkeyBusy} className="w-full py-2.5 rounded-xl bg-[#423238] items-center">
+            <Pressable onPress={() => setPasskeyModalVisible(true)} disabled={passkeyBusy} className="w-full py-2.5 rounded-xl bg-[#423238] items-center">
               <Text className="text-sm font-semibold text-white">{passkeyBusy ? "Working…" : "Add passkey"}</Text>
             </Pressable>
           ) : (
@@ -796,7 +876,75 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
             <Text className="text-sm font-semibold text-[#ba1a1a]">Sign out</Text>
           </Pressable>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+              {/* Delete account */}
+        <View className="mt-6">
+          <Pressable
+            onPress={deleteUserData}
+            disabled={busy !== null}
+            className="w-full py-3 rounded-xl border border-rose-200 bg-white items-center"
+          >
+            <Text className="text-sm font-semibold text-rose-700">Delete account</Text>
+          </Pressable>
+          <Text className="text-xs text-[#8d706e] mt-2 text-center">
+            Permanently deletes your account. You can restore it within 30 days.
+          </Text>
+        </View>
+
+</ScrollView>
+
+          <PasskeyModal
+        visible={passkeyModalVisible}
+        busy={passkeyBusy}
+        onClose={() => { if (!passkeyBusy) setPasskeyModalVisible(false); }}
+        onConfirm={() => { setPasskeyModalVisible(false); void addPasskey(); }}
+      />
+      <Modal
+        visible={deleteAccountVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { if (!deleteAccountBusy) setDeleteAccountVisible(false); }}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(28,28,24,0.45)", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <View style={{ width: "100%", maxWidth: 360, backgroundColor: "#FCF9F3", borderRadius: 20, padding: 20 }}>
+            <Text style={{ fontSize: 17, fontWeight: "700", color: "#1C1C18", marginBottom: 8 }}>Delete account</Text>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: "#59413F", marginBottom: 12 }}>
+              Type "DELETE" to confirm, then enter your current password.
+            </Text>
+            <TextInput
+              value={deleteAccountConfirm}
+              onChangeText={setDeleteAccountConfirm}
+              placeholder='Type "DELETE"'
+              autoCapitalize="characters"
+              style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E1BFBC", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 }}
+            />
+            <TextInput
+              value={deleteAccountPassword}
+              onChangeText={setDeleteAccountPassword}
+              placeholder="Current password"
+              secureTextEntry
+              style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E1BFBC", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16 }}
+            />
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Pressable
+                onPress={() => { if (!deleteAccountBusy) setDeleteAccountVisible(false); }}
+                disabled={deleteAccountBusy}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E1BFBC", alignItems: "center", opacity: deleteAccountBusy ? 0.5 : 1 }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#59413F" }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmDeleteAccount}
+                disabled={deleteAccountBusy}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#AD292F", alignItems: "center", opacity: deleteAccountBusy ? 0.5 : 1 }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+                  {deleteAccountBusy ? "Working…" : "Delete"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+</SafeAreaView>
   );
 }

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +17,8 @@ import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
 import { api } from "../lib/api";
 import { Passkey } from "react-native-passkey";
+import { PasskeyModal } from "../components/PasskeyModal";
+import { Alert } from "react-native";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -25,7 +28,19 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [passkeySubmitting, setPasskeySubmitting] = useState(false);
+  const [showPasskeyPrompt, setShowPasskeyPrompt] = useState(false);
+  const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const handlePasskeySignIn = async () => {
     setError("");
@@ -44,7 +59,7 @@ export default function LoginScreen() {
       const profile = data?.profile ?? {};
       signIn(profile?.phone ?? data?.dedan_user_id ?? "", token);
       const onboarded = profile?.onboarding_complete;
-      router.replace(onboarded ? "/(tabs)/booking" : "/onboarding");
+      router.replace(onboarded ? "/(tabs)" : "/onboarding");
     } catch (e: any) {
       console.log("passkey error:", JSON.stringify(e));
       if (e?.error === "UserCancelled" || e?.message?.toLowerCase().includes("cancel")) {
@@ -75,23 +90,82 @@ export default function LoginScreen() {
       const token = data?.access_token ?? null;
       signIn(phone.trim(), token);
       const onboarded = data?.profile?.onboarding_complete;
-      router.replace(onboarded ? "/(tabs)/booking" : "/onboarding");
+      const go = () => router.replace(onboarded ? "/(tabs)" : "/onboarding");
+      if (Passkey.isSupported()) {
+        setPendingNav(() => go);
+        setShowPasskeyPrompt(true);
+      } else {
+        go();
+      }
     } catch (e: any) {
+      const code = (e as any)?.details?.code;
+      if (e?.status === 409 && code === "account_pending_deletion") {
+        const restoreToken = (e as any)?.details?.restore_token;
+        const eraseAfter = (e as any)?.details?.erase_after;
+        Alert.alert(
+          "Restore account?",
+          `This account was deleted. You can restore it until ${eraseAfter ?? "it is erased"}.`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Restore",
+              onPress: async () => {
+                try {
+                  const r = await api("/auth/restore", { method: "POST", body: { restore_token: restoreToken } });
+                  const t = r?.access_token ?? null;
+                  signIn(phone.trim(), t);
+                  const onb = r?.profile?.onboarding_complete;
+                  router.replace(onb ? "/(tabs)" : "/onboarding");
+                } catch (err: any) {
+                  setError(err?.message ?? "Restore failed");
+                }
+              },
+            },
+          ],
+        );
+        return;
+      }
       setError(e?.message ?? "Login failed");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const [passkeyPromptBusy, setPasskeyPromptBusy] = useState(false);
+  const handlePasskeyPromptConfirm = async () => {
+    setPasskeyPromptBusy(true);
+    try {
+      const opts = await api("users/me/passkeys/registration/options", { method: "POST", body: {} });
+      const credential = await Passkey.create(opts?.options ?? opts);
+      await api("users/me/passkeys/registration/verify", { method: "POST", body: { credential, name: "This device" } });
+    } catch (e) {
+      // ignore cancel/errors, still navigate
+    } finally {
+      setPasskeyPromptBusy(false);
+      setShowPasskeyPrompt(false);
+      if (pendingNav) pendingNav();
+      setPendingNav(null);
+    }
+  };
+  const handlePasskeyPromptClose = () => {
+    if (passkeyPromptBusy) return;
+    setShowPasskeyPrompt(false);
+    if (pendingNav) pendingNav();
+    setPendingNav(null);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
+        enabled
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+        style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: keyboardVisible ? -60 : 0 }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           className="px-6 py-8"
         >
           {/* Brand */}
@@ -158,6 +232,7 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <PasskeyModal visible={showPasskeyPrompt} busy={passkeyPromptBusy} title="Sign in faster next time?" description="Use your fingerprint or face to sign in faster next time." onConfirm={handlePasskeyPromptConfirm} onClose={handlePasskeyPromptClose} />
     </SafeAreaView>
   );
 }
