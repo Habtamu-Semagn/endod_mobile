@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { Text } from "../components/ui/Text";
 import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -86,19 +86,20 @@ export default function VerifyOtpScreen() {
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        enabled
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={Platform.OS === "ios"}
+        behavior="padding"
         keyboardVerticalOffset={0}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: keyboardVisible ? -60 : 0 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: Platform.OS === "ios" && keyboardVisible ? -60 : 0 }}
           keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           className="px-6 py-8"
         >
           <View className="items-center mb-8">
-            <View className="w-16 h-16 rounded-2xl bg-teal-100 items-center justify-center mb-4">
+            <View className="w-16 h-16 rounded-2xl bg-brand-success-soft items-center justify-center mb-4">
               <Text className="text-2xl">📱</Text>
             </View>
             <Text className="text-xl font-bold text-brand-heading">Verify your number</Text>
@@ -120,15 +121,15 @@ export default function VerifyOtpScreen() {
                 keyboardType="number-pad"
                 maxLength={1}
                 selectTextOnFocus
-                className={`w-[48px] h-[56px] rounded-xl border-2 bg-white text-center text-xl font-bold text-slate-900 ${
-                  digit ? "border-emerald-500" : "border-slate-200"
+                className={`w-[48px] h-[56px] rounded-xl border-2 bg-white text-center text-xl font-bold text-brand-heading ${
+                  digit ? "border-brand-primary" : "border-brand-border"
                 }`}
               />
             ))}
           </View>
 
           {error ? (
-            <Text className="text-xs text-rose-500 text-center mb-3">{error}</Text>
+            <Text className="text-xs text-brand-danger text-center mb-3">{error}</Text>
           ) : null}
 
           <Button title="Verify" size="lg" loading={submitting} onPress={handleVerify} />
@@ -141,7 +142,7 @@ export default function VerifyOtpScreen() {
               </Text>
             ) : (
               <Pressable onPress={() => setCooldown(RESEND_COOLDOWN)}>
-                <Text className="text-sm font-semibold text-teal-700">Resend code</Text>
+                <Text className="text-sm font-semibold text-brand-success">Resend code</Text>
               </Pressable>
             )}
           </View>

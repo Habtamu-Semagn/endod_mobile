@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Text } from "../components/ui/Text";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -7,6 +15,7 @@ import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
 import { api, getAuthToken } from "../lib/api";
+import { COLORS } from "../lib/theme";
 
 const LOOKING_FOR = [
   { id: "symptoms", label: "Understand my symptoms", hint: "Talk to Endod AI about how you're feeling" },
@@ -133,15 +142,16 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        enabled
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={Platform.OS === "ios"}
+        behavior="padding"
         keyboardVerticalOffset={0}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, marginTop: keyboardVisible ? -40 : 0 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, marginTop: Platform.OS === "ios" && keyboardVisible ? -40 : 0 }}
           keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           className="px-6 pt-4 pb-8"
         >
         {/* Header */}
@@ -149,7 +159,7 @@ export default function OnboardingScreen() {
           {step > 0 ? (
             <Pressable
               onPress={() => setStep((s) => s - 1)}
-              className="w-10 h-10 rounded-full bg-white items-center justify-center border border-slate-200"
+              className="w-10 h-10 rounded-full bg-white items-center justify-center border border-brand-border"
             >
               <ChevronLeft />
             </Pressable>
@@ -167,7 +177,7 @@ export default function OnboardingScreen() {
           {[0, 1, 2, 3, 4].map((i) => (
             <View
               key={i}
-              className={`flex-1 h-1.5 rounded-full ${i <= step ? "bg-emerald-600" : "bg-white"}`}
+              className={`flex-1 h-1.5 rounded-full ${i <= step ? "bg-brand-primary" : "bg-white"}`}
             />
           ))}
         </View>
@@ -180,7 +190,7 @@ export default function OnboardingScreen() {
             <Field label="First Name" value={firstName} onChangeText={setFirstName} placeholder="Daniel" />
             <Field label="Middle Name" value={middleName} onChangeText={setMiddleName} placeholder="" />
             <Field label="Last Name" value={lastName} onChangeText={setLastName} placeholder="Everett" />
-            {error ? <Text className="text-xs text-rose-500 mb-2">{error}</Text> : null}
+            {error ? <Text className="text-xs text-brand-danger mb-2">{error}</Text> : null}
             <Button title="Continue" variant="dark" size="lg" onPress={handleContinue} />
           </View>
         ) : null}
@@ -195,12 +205,12 @@ export default function OnboardingScreen() {
                   key={opt.id}
                   onPress={() => toggleLookingFor(opt.id)}
                   className={`flex-row items-center gap-3 p-4 rounded-2xl border mb-2.5 ${
-                    selected ? "bg-emerald-50 border-emerald-400" : "bg-white border-slate-200"
+                    selected ? "bg-brand-success-soft border-brand-success" : "bg-white border-brand-border"
                   }`}
                 >
                   <View
                     className={`w-5 h-5 rounded-md border-2 items-center justify-center ${
-                      selected ? "bg-emerald-600 border-emerald-600" : "border-slate-300"
+                      selected ? "bg-brand-primary border-brand-primary" : "border-brand-border"
                     }`}
                   >
                     {selected ? <Text className="text-white text-xs font-bold">✓</Text> : null}
@@ -212,7 +222,7 @@ export default function OnboardingScreen() {
                 </Pressable>
               );
             })}
-            {error ? <Text className="text-xs text-rose-500 mb-2">{error}</Text> : null}
+            {error ? <Text className="text-xs text-brand-danger mb-2">{error}</Text> : null}
             <Button title="Continue" variant="dark" size="lg" onPress={handleContinue} />
           </View>
         ) : null}
@@ -228,15 +238,15 @@ export default function OnboardingScreen() {
                   setError("");
                 }}
                 className={`flex-row items-center gap-3 p-4 rounded-2xl border mb-2.5 ${
-                  sex === opt ? "bg-emerald-50 border-emerald-400" : "bg-white border-slate-200"
+                  sex === opt ? "bg-brand-success-soft border-brand-success" : "bg-white border-brand-border"
                 }`}
               >
                 <View
                   className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                    sex === opt ? "border-emerald-600" : "border-slate-300"
+                    sex === opt ? "border-brand-primary" : "border-brand-border"
                   }`}
                 >
-                  {sex === opt ? <View className="w-2.5 h-2.5 rounded-full bg-emerald-600" /> : null}
+                  {sex === opt ? <View className="w-2.5 h-2.5 rounded-full bg-brand-primary" /> : null}
                 </View>
                 <Text className="text-sm font-semibold text-brand-heading">{opt}</Text>
               </Pressable>
@@ -256,16 +266,16 @@ export default function OnboardingScreen() {
                   setError("");
                 }}
                 className={`flex-row items-center gap-3 p-4 rounded-2xl border mb-2.5 ${
-                  ageRange === opt.value ? "bg-emerald-50 border-emerald-400" : "bg-white border-slate-200"
+                  ageRange === opt.value ? "bg-brand-success-soft border-brand-success" : "bg-white border-brand-border"
                 }`}
               >
                 <View
                   className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                    ageRange === opt.value ? "border-emerald-600" : "border-slate-300"
+                    ageRange === opt.value ? "border-brand-primary" : "border-brand-border"
                   }`}
                 >
                   {ageRange === opt.value ? (
-                    <View className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                    <View className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
                   ) : null}
                 </View>
                 <Text className="text-sm font-semibold text-brand-heading">{opt.label}</Text>
@@ -284,7 +294,7 @@ export default function OnboardingScreen() {
                 <Pressable
                   key={bt}
                   onPress={() => setBloodType(bt)}
-                  className={`px-3 py-2 rounded-xl border ${bloodType === bt ? "bg-emerald-50 border-emerald-400" : "bg-white border-slate-200"}`}
+                  className={`px-3 py-2 rounded-xl border ${bloodType === bt ? "bg-brand-success-soft border-brand-success" : "bg-white border-brand-border"}`}
                 >
                   <Text className="text-sm font-semibold text-brand-heading">{bt}</Text>
                 </Pressable>
@@ -297,7 +307,7 @@ export default function OnboardingScreen() {
             <Field label="Emergency contact phone (optional)" value={emergencyPhone} onChangeText={setEmergencyPhone} placeholder="+1 (617) 555-0198" keyboardType="phone-pad" />
 
             <Pressable onPress={() => setHealthConsent((v) => !v)} className="flex-row items-start gap-2 mb-4">
-              <View className={`w-5 h-5 rounded border items-center justify-center ${healthConsent ? "bg-emerald-600 border-emerald-600" : "border-slate-300"}`}>
+              <View className={`w-5 h-5 rounded border items-center justify-center ${healthConsent ? "bg-brand-primary border-brand-primary" : "border-brand-border"}`}>
                 {healthConsent ? <Text className="text-white text-xs">✓</Text> : null}
               </View>
               <Text className="text-xs text-brand-muted flex-1">
@@ -319,7 +329,7 @@ function ChevronLeft() {
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d="M15 19l-7-7 7-7"
-        stroke="#59413F"
+        stroke={COLORS.body}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"

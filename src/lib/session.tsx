@@ -10,6 +10,7 @@ import {
 import { DEFAULT_PROFILE } from "./data";
 import { useRouter } from "expo-router";
 import { api, setAuthToken, setOnUnauthorized, ensureTokenLoaded, getAuthToken } from "./api";
+import { unregisterPush } from "./push";
 
 export type Session = {
   phone: string;
@@ -146,7 +147,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const signOut = useCallback(() => { setAuthToken(null); setSession(null); }, []);
+  // The phone stops getting this account's pushes (the request leaves before the token is cleared).
+  const signOut = useCallback(() => { void unregisterPush(); setAuthToken(null); setSession(null); }, []);
 
   const value = useMemo(
     () => ({ session, signIn, beginSignUp, completeOnboarding, updateProfile, signOut }),

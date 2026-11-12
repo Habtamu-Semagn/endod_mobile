@@ -1,11 +1,13 @@
+import { COLORS, TAB_CONTENT_PADDING } from "../../lib/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, ScrollView, View } from "react-native";
 import { Svg, Path } from "react-native-svg";
 import { api, ApiError } from "../../lib/api";
+import { refreshUnreadCount } from "../../lib/unread";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { Bone, RowBones, Skeleton } from "../../components/skeleton";
 import { router } from "expo-router";
+import { Text } from "../../components/ui/Text";
 
 type Category = "appointments" | "records" | "messages" | "security";
 
@@ -44,22 +46,22 @@ const CATEGORIES: {
   {
     id: "appointments", titleKey: "notifications.cat.appointments.title", labelKey: "notifications.cat.appointments.label",
     iconPath: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
-    iconWrap: "bg-[#f6f3ed] border border-[#f6f3ed]", iconColor: "text-[#59413f]",
+    iconWrap: "bg-brand-alt border border-brand-alt", iconColor: "text-brand-body",
   },
   {
     id: "records", titleKey: "notifications.cat.records.title", labelKey: "notifications.cat.records.label",
     iconPath: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
-    iconWrap: "bg-[#f6f3ed] border border-[#f6f3ed]", iconColor: "text-[#59413f]",
+    iconWrap: "bg-brand-alt border border-brand-alt", iconColor: "text-brand-body",
   },
   {
     id: "messages", titleKey: "notifications.cat.messages.title", labelKey: "notifications.cat.messages.label",
     iconPath: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
-    iconWrap: "bg-[#f6f3ed] border border-[#f6f3ed]", iconColor: "text-[#423238]",
+    iconWrap: "bg-brand-alt border border-brand-alt", iconColor: "text-brand-accent",
   },
   {
     id: "security", titleKey: "notifications.cat.security.title", labelKey: "notifications.cat.security.label",
     iconPath: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
-    iconWrap: "bg-[#8d706e]/10 border border-[#8d706e]/20", iconColor: "text-[#8d706e]",
+    iconWrap: "bg-brand-muted/10 border border-brand-muted/20", iconColor: "text-brand-muted",
   },
 ];
 
@@ -132,6 +134,8 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
       setNextCursor(page.next_cursor);
       setUnread({ total: page.unread_count, byCategory: page.unread_by_category });
       setLoadError("");
+      // Keep the header bell in step with this screen (after "mark all" too).
+      void refreshUnreadCount();
     } catch (error) {
       if (mine !== generation.current) return;
       setLoadError(error instanceof ApiError ? error.message : t("notifications.error.load"));
@@ -158,7 +162,7 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
       total: Math.max(0, u.total - 1),
       byCategory: { ...u.byCategory, [item.category]: Math.max(0, (u.byCategory[item.category] ?? 1) - 1) },
     }));
-    api(`users/me/inbox/${item.id}/read`, { method: "POST" }).catch(() => void load());
+    api(`users/me/inbox/${item.id}/read`, { method: "POST" }).then(() => refreshUnreadCount()).catch(() => void load());
   };
 
   const open = (item: InboxItem) => {
@@ -172,6 +176,7 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
     try {
       await api(`users/me/inbox/${item.id}`, { method: "DELETE" });
       setItems((list) => list?.filter((n) => n.id !== item.id) ?? null);
+      void refreshUnreadCount();
       if (!item.read) {
         setUnread((u) => ({
           total: Math.max(0, u.total - 1),
@@ -200,20 +205,20 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
     .filter((group) => group.entries.length > 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <View className="flex-1 bg-brand-bg">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }}>
         <View className="gap-6 pb-6">
           {/* Header */}
-          <View className="flex-col gap-4 pb-6 border-b border-[#e1bfbc]">
+          <View className="flex-col gap-4 pb-6 border-b border-brand-border">
             <View>
               <View className="flex-row items-center gap-2">
-                <View className={`px-2 py-0.5 rounded-full border ${unread.total === 0 ? "bg-[#f6f3ed] border-[#e1bfbc]" : "bg-[#f6f3ed] border-[#e1bfbc]"}`}>
-                  <Text className="text-xs font-medium text-[#59413f]">{t("notifications.unreadCount", { count: unread.total })}</Text>
+                <View className={`px-2 py-0.5 rounded-full border ${unread.total === 0 ? "bg-brand-alt border-brand-border" : "bg-brand-alt border-brand-border"}`}>
+                  <Text className="text-xs font-medium text-brand-body">{t("notifications.unreadCount", { count: unread.total })}</Text>
                 </View>
               </View>
             </View>
-            <Pressable onPress={markAllRead} disabled={unread.total === 0} className="self-start px-3 py-1.5 border border-[#e1bfbc] rounded-lg bg-white">
-              <Text className="text-xs font-medium text-[#59413f]">{t("notifications.markAllRead")}</Text>
+            <Pressable onPress={markAllRead} disabled={unread.total === 0} className="self-start px-3 py-1.5 border border-brand-border rounded-lg bg-white">
+              <Text className="text-xs font-medium text-brand-body">{t("notifications.markAllRead")}</Text>
             </Pressable>
           </View>
 
@@ -224,16 +229,16 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
                 <Pressable
                   key={pill.id}
                   onPress={() => setFilter(pill.id)}
-                  className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${filter === pill.id ? "bg-[#423238]" : "bg-white border border-[#e1bfbc]"}`}
+                  className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${filter === pill.id ? "bg-brand-accent" : "bg-white border border-brand-border"}`}
                 >
-                  <Text className={`text-sm ${filter === pill.id ? "font-semibold text-white" : "font-medium text-[#59413f]"}`}>{pill.label}{pill.count ? ` (${pill.count})` : ""}</Text>
+                  <Text className={`text-sm ${filter === pill.id ? "font-semibold text-white" : "font-medium text-brand-body"}`}>{pill.label}{pill.count ? ` (${pill.count})` : ""}</Text>
                 </Pressable>
               ))}
             </View>
           </ScrollView>
 
           {loadError ? (
-            <Text className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/10 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">{loadError}</Text>
+            <Text className="text-xs text-brand-danger bg-brand-danger/10 border border-brand-danger/20 rounded-lg px-3 py-2">{loadError}</Text>
           ) : null}
           {!items && !loadError && (
             <Skeleton className="gap-3" label={t("common.loading")}>
@@ -244,7 +249,7 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
             </Skeleton>
           )}
           {items && groups.length === 0 && !loadError && (
-            <Text className="text-xs text-[#59413f] bg-white border border-[#e1bfbc] rounded-2xl p-4">{t("notifications.empty")}</Text>
+            <Text className="text-xs text-brand-body bg-white border border-brand-border rounded-2xl p-4">{t("notifications.empty")}</Text>
           )}
 
           {groups.map(({ category, entries }) => (
@@ -252,11 +257,11 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
               <View className="flex-row items-center justify-between px-1">
                 <View className="flex-row items-center gap-2">
                   <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                    <Path d={category.iconPath} stroke="#8d706e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <Path d={category.iconPath} stroke={COLORS.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                   </Svg>
-                  <Text className="text-xs font-semibold text-[#59413f] uppercase tracking-wider">{t(category.titleKey)}</Text>
+                  <Text className="text-xs font-semibold text-brand-body uppercase tracking-wider">{t(category.titleKey)}</Text>
                 </View>
-                <Text className="text-[11px] font-normal text-[#8d706e] lowercase">
+                <Text className="text-[11px] font-normal text-brand-muted lowercase">
                   {t(entries.length === 1 ? "notifications.countOne" : "notifications.countOther", { count: entries.length })}
                 </Text>
               </View>
@@ -272,35 +277,35 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
                     <Pressable
                       key={n.id}
                       onPress={() => open(n)}
-                      className="bg-white rounded-xl border border-[#e1bfbc] p-4"
+                      className="bg-white rounded-xl border border-brand-border p-4"
                     >
                       <View className="flex-row items-start gap-3">
                         <View className={`w-9 h-9 rounded-lg items-center justify-center flex-shrink-0 mt-0.5 ${category.iconWrap}`}>
                           <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                            <Path d={category.iconPath} stroke={category.iconColor === "text-[#59413f]" ? "#59413f" : category.iconColor === "text-[#423238]" ? "#423238" : "#8d706e"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            <Path d={category.iconPath} stroke={category.iconColor === "text-brand-body" ? COLORS.body : category.iconColor === "text-brand-accent" ? COLORS.accent : COLORS.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                           </Svg>
                         </View>
                         <View className="flex-1 min-w-0">
                           <View className="flex-row items-center justify-between gap-2">
-                            <Text className="text-sm font-semibold text-[#1c1c18]">{displayTitle}</Text>
+                            <Text className="text-sm font-semibold text-brand-heading">{displayTitle}</Text>
                             <View className="flex-row items-center gap-2 flex-shrink-0">
-                              <Text className="text-[11px] text-[#8d706e]">{timeAgo(n.created_at, locale, t)}</Text>
-                              {!n.read && <View className="w-2 h-2 rounded-full bg-[#59413f]" />}
+                              <Text className="text-[11px] text-brand-muted">{timeAgo(n.created_at, locale, t)}</Text>
+                              {!n.read && <View className="w-2 h-2 rounded-full bg-brand-body" />}
                             </View>
                           </View>
-                          {displayBody && <Text className="text-sm text-[#59413f] mt-1.5 leading-relaxed">{displayBody}</Text>}
-                          <View className="mt-3 pt-3 border-t border-[#f6f3ed] flex-row flex-wrap items-center justify-end gap-2.5">
+                          {displayBody && <Text className="text-sm text-brand-body mt-1.5 leading-relaxed">{displayBody}</Text>}
+                          <View className="mt-3 pt-3 border-t border-brand-alt flex-row flex-wrap items-center justify-end gap-2.5">
                             {!n.read && !to && (
                               <Pressable onPress={(e) => { e?.stopPropagation?.(); markRead(n); }} className="px-2.5 py-1 rounded">
-                                <Text className="text-xs text-[#59413f]">{t("notifications.markRead")}</Text>
+                                <Text className="text-xs text-brand-body">{t("notifications.markRead")}</Text>
                               </Pressable>
                             )}
                             <Pressable onPress={(e) => { e?.stopPropagation?.(); void dismiss(n); }} className="px-2.5 py-1 rounded">
-                              <Text className="text-xs text-[#59413f]">{t("common.dismiss")}</Text>
+                              <Text className="text-xs text-brand-body">{t("common.dismiss")}</Text>
                             </Pressable>
                             {to && (
-                              <View className="px-3 py-1.5 rounded-lg bg-[#f6f3ed] border border-[#e1bfbc]">
-                                <Text className="text-xs font-medium text-[#59413f]">{to.nav === "appointment" ? t("notifications.viewInAppointments") : t("notifications.viewRecord")}</Text>
+                              <View className="px-3 py-1.5 rounded-lg bg-brand-alt border border-brand-border">
+                                <Text className="text-xs font-medium text-brand-body">{to.nav === "appointment" ? t("notifications.viewInAppointments") : t("notifications.viewRecord")}</Text>
                               </View>
                             )}
                           </View>
@@ -315,13 +320,13 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
 
           {nextCursor && (
             <View className="items-center">
-              <Pressable onPress={loadMore} disabled={loadingMore} className="px-4 py-2 border border-[#e1bfbc] rounded-lg bg-white">
-                <Text className="text-xs font-semibold text-[#59413f]">{loadingMore ? t("common.loading") : t("notifications.loadMore")}</Text>
+              <Pressable onPress={loadMore} disabled={loadingMore} className="px-4 py-2 border border-brand-border rounded-lg bg-white">
+                <Text className="text-xs font-semibold text-brand-body">{loadingMore ? t("common.loading") : t("notifications.loadMore")}</Text>
               </Pressable>
             </View>
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

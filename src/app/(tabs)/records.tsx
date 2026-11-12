@@ -1,11 +1,12 @@
+import { TAB_CONTENT_PADDING } from "../../lib/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { api, ApiError } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { Bone, Skeleton } from "../../components/skeleton";
 import { QueueCard, FollowUpCards } from "../../components/care-cards";
+import { Text } from "../../components/ui/Text";
 import {
   type BookingPreset, CATEGORY_LABEL, type HistoryResponse,
   type Share, TABS,
@@ -96,30 +97,30 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
 
   if (recordId) {
     return (
-      <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+      <View className="flex-1 bg-brand-bg">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }}>
           <MedicalRecordDetailView recordId={recordId} onBack={onBack} />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <View className="flex-1 bg-brand-bg">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }}>
         <View className="gap-5 pb-6">
           <View className="flex-col gap-3">
             <View>
             </View>
             <View className="flex-row flex-wrap gap-2 self-start">
-              <Pressable onPress={() => setAdding(true)} className="px-3.5 py-2 rounded-full bg-[#423238]">
+              <Pressable onPress={() => setAdding(true)} className="px-3.5 py-2 rounded-full bg-brand-accent">
                 <Text className="text-white text-xs font-semibold">{t("records.addVisit")}</Text>
               </Pressable>
-              <Pressable onPress={() => setSharing(true)} disabled={!items.length} className="px-3.5 py-2 rounded-full border border-[#1c1c18] bg-white">
-                <Text className="text-[#1c1c18] text-xs font-semibold">{t("history.share")}</Text>
+              <Pressable onPress={() => setSharing(true)} disabled={!items.length} className="px-3.5 py-2 rounded-full border border-brand-heading bg-white">
+                <Text className="text-brand-heading text-xs font-semibold">{t("history.share")}</Text>
               </Pressable>
-              <Pressable onPress={() => router.push("/records-download")} className="px-3.5 py-2 rounded-full border border-[#e1bfbc] bg-white">
-                <Text className="text-[#59413f] text-xs font-semibold">{t("history.download")}</Text>
+              <Pressable onPress={() => router.push("/records-download")} className="px-3.5 py-2 rounded-full border border-brand-border bg-white">
+                <Text className="text-brand-body text-xs font-semibold">{t("history.download")}</Text>
               </Pressable>
             </View>
           </View>
@@ -135,12 +136,12 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
               { id: "stat-hospitals", label: t("history.stat.hospitals"), value: summary?.hospitals },
               { id: "stat-self", label: t("history.stat.selfReported"), value: summary?.self_reported },
             ].map((stat) => (
-              <View key={stat.id} className="bg-white rounded-2xl border border-[#e1bfbc] p-3.5 flex-1 min-w-[40%]">
-                <Text className="text-[11px] font-semibold uppercase tracking-wider text-[#8d706e]">{stat.label}</Text>
+              <View key={stat.id} className="bg-white rounded-2xl border border-brand-border p-3.5 flex-1 min-w-[40%]">
+                <Text className="text-[11px] font-semibold uppercase tracking-wider text-brand-muted">{stat.label}</Text>
                 {data ? (
-                  <Text className="text-xl font-bold text-[#1c1c18] leading-tight">{stat.value ?? 0}</Text>
+                  <Text className="text-xl font-bold text-brand-heading leading-tight">{stat.value ?? 0}</Text>
                 ) : loadError ? (
-                  <Text className="text-xl font-bold text-[#e1bfbc] leading-tight">—</Text>
+                  <Text className="text-xl font-bold text-brand-border leading-tight">—</Text>
                 ) : (
                   <Bone className="h-6 w-12 rounded mt-0.5" />
                 )}
@@ -149,16 +150,16 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
           </View>
 
           {/* Tabs */}
-          <View className="bg-white rounded-2xl border border-[#e1bfbc] p-3 mt-2">
+          <View className="bg-white rounded-2xl border border-brand-border p-3 mt-2">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2.5 px-1">
                 {TABS.map((item: any) => (
                   <Pressable
                     key={item.id}
                     onPress={() => setTab(item.id)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-full border ${tab === item.id ? "bg-[#423238] border-[#423238]" : "bg-white border-[#e1bfbc]"}`}
+                    className={`whitespace-nowrap px-4 py-2 rounded-full border ${tab === item.id ? "bg-brand-accent border-brand-accent" : "bg-white border-brand-border"}`}
                   >
-                    <Text className={`text-sm font-semibold ${tab === item.id ? "text-white" : "text-[#59413f]"}`}>{t(item.labelKey)}</Text>
+                    <Text className={`text-sm font-semibold ${tab === item.id ? "text-white" : "text-brand-body"}`}>{t(item.labelKey)}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -166,14 +167,14 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
           </View>
 
           {loadError ? (
-            <Text className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/10 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">{loadError}</Text>
+            <Text className="text-xs text-brand-danger bg-brand-danger/10 border border-brand-danger/20 rounded-lg px-3 py-2">{loadError}</Text>
           ) : null}
 
           {/* Records */}
           {!data && !loadError ? (
             <Skeleton className="gap-3" label={t("common.loading")}>
               {[0, 1, 2].map((i) => (
-                <View key={i} className="bg-white rounded-2xl border border-[#e1bfbc] p-4 gap-2.5">
+                <View key={i} className="bg-white rounded-2xl border border-brand-border p-4 gap-2.5">
                   <Bone className="h-3 w-24 rounded" />
                   <Bone className="h-4 w-2/3 rounded" />
                   <Bone className="h-3 w-1/2 rounded" />
@@ -181,9 +182,9 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
               ))}
             </Skeleton>
           ) : data && !items.length ? (
-            <Text className="bg-white rounded-2xl border border-dashed border-[#e1bfbc] px-5 py-8 text-sm text-[#59413f] text-center">{t("history.empty")}</Text>
+            <Text className="bg-white rounded-2xl border border-dashed border-brand-border px-5 py-8 text-sm text-brand-body text-center">{t("history.empty")}</Text>
           ) : data && !shown.length ? (
-            <Text className="bg-white rounded-2xl border border-dashed border-[#e1bfbc] px-5 py-8 text-sm text-[#59413f] text-center">{t("history.noMatch")}</Text>
+            <Text className="bg-white rounded-2xl border border-dashed border-brand-border px-5 py-8 text-sm text-brand-body text-center">{t("history.noMatch")}</Text>
           ) : (
             <View className="gap-3">
               {shown.map((item: any) => {
@@ -192,29 +193,29 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
                   <Pressable
                     key={item.id}
                     onPress={() => onSelectRecord?.(item.id)}
-                    className={`bg-white rounded-2xl border overflow-hidden p-4 ${highlightTarget === target ? "border-[#8d706e]" : "border-[#e1bfbc]"}`}
+                    className={`bg-white rounded-2xl border overflow-hidden p-4 ${highlightTarget === target ? "border-brand-muted" : "border-brand-border"}`}
                   >
                     <View className="flex-row items-start gap-3">
-                      <View className={`w-9 h-9 rounded-xl items-center justify-center flex-shrink-0 ${item.kind === "hospital" ? "bg-[#f6f3ed] border border-[#f6f3ed]" : "bg-[#f6f3ed] border border-[#e1bfbc]"}`}>
-                        <Text className="text-[11px] font-bold text-[#59413f]">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL]).slice(0, 2)}</Text>
+                      <View className={`w-9 h-9 rounded-xl items-center justify-center flex-shrink-0 ${item.kind === "hospital" ? "bg-brand-alt border border-brand-alt" : "bg-brand-alt border border-brand-border"}`}>
+                        <Text className="text-[11px] font-bold text-brand-body">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL]).slice(0, 2)}</Text>
                       </View>
                       <View className="flex-1 min-w-0">
                         <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
-                          <Text className="text-[11px] font-semibold uppercase tracking-wider text-[#8d706e]">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL])}</Text>
-                          <View className={`rounded px-1.5 py-0.5 border ${item.verified ? "bg-[#f6f3ed] border-[#e1bfbc]" : "bg-[#f6f3ed] border-[#e1bfbc]"}`}>
-                            <Text className="text-[10px] font-semibold text-[#59413f]">{item.verified ? t("records.verified") : t("records.selfReported")}</Text>
+                          <Text className="text-[11px] font-semibold uppercase tracking-wider text-brand-muted">{t(CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL])}</Text>
+                          <View className={`rounded px-1.5 py-0.5 border ${item.verified ? "bg-brand-alt border-brand-border" : "bg-brand-alt border-brand-border"}`}>
+                            <Text className="text-[11px] font-semibold text-brand-body">{item.verified ? t("records.verified") : t("records.selfReported")}</Text>
                           </View>
                         </View>
-                        <Text className="text-sm font-semibold text-[#1c1c18] mt-0.5">{item.title}</Text>
-                        <Text className="text-xs text-[#59413f] mt-0.5">
+                        <Text className="text-sm font-semibold text-brand-heading mt-0.5">{item.title}</Text>
+                        <Text className="text-xs text-brand-body mt-0.5">
                           {[formatDate(item.occurred_at), item.hospital_name, item.recorded_by].filter(Boolean).join(" · ")}
                         </Text>
                         {item.files?.length > 0 && (
-                          <Text className="text-[11px] text-[#59413f] mt-1">{t(item.files.length === 1 ? "history.filesOne" : "history.filesOther", { count: item.files.length })}</Text>
+                          <Text className="text-[11px] text-brand-body mt-1">{t(item.files.length === 1 ? "history.filesOne" : "history.filesOther", { count: item.files.length })}</Text>
                         )}
                       </View>
-                      <Pressable onPress={(e) => { e?.stopPropagation?.(); onSelectRecord?.(item.id); }} className="mt-1 rounded-lg border border-[#e1bfbc] px-2 py-1">
-                        <Text className="text-[11px] font-semibold text-[#59413f]">Open</Text>
+                      <Pressable onPress={(e) => { e?.stopPropagation?.(); onSelectRecord?.(item.id); }} className="mt-1 rounded-lg border border-brand-border px-2 py-1">
+                        <Text className="text-[11px] font-semibold text-brand-body">Open</Text>
                       </Pressable>
                     </View>
                   </Pressable>
@@ -249,6 +250,6 @@ export default function RecordsScreen({ highlightTarget, onToast = () => {}, onO
           />
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

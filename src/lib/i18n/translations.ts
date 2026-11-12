@@ -80,6 +80,13 @@ export const en = {
   "tab.settings": "Settings",
   "tab.notifications": "Notifications",
   "tab.bills": "Bills",
+  // Short labels used only by the bottom navigation bar, so the five items
+  // stay on one line and never clip on narrow screens.
+  "tab.short.booking": "Book",
+  "tab.short.card": "Card",
+  "tab.short.home": "Home",
+  "tab.short.appointments": "Visits",
+  "tab.short.settings": "Settings",
 
   // ===== Landing page =====
   "hero.title": "Book care, carry your card, keep your records",
@@ -393,6 +400,10 @@ export const en = {
   "booking.directoryCountOther": "{total} facilities",
   "booking.searchPlaceholder": "Search hospitals by name or location...",
   "booking.allSpecialties": "All Specialties",
+  "booking.clearSearch": "Clear search",
+  "booking.filter.all": "All",
+  "booking.sort.az": "A–Z",
+  "booking.sort.nearest": "Nearest",
   "booking.specialty.cardiology": "Cardiology",
   "booking.specialty.generalMedicine": "General Medicine",
   "booking.specialty.emergencyTrauma": "Emergency & Trauma",
@@ -890,6 +901,9 @@ export const en = {
     "Only summaries you review and approve are ever shared.",
   "settings.privacy.sms.label": "SMS reminders",
   "settings.privacy.sms.hint": "Appointment reminders by text message to your verified phone.",
+  "settings.privacy.push.label": "Push notifications",
+  "settings.privacy.push.hint": "Updates in your notification bar with the Endod sound, even when the app is closed. Details show only inside the app.",
+  "settings.privacy.push.denied": "Notifications are blocked for Endod. Allow them in your phone's settings, then try again.",
   "settings.password.title": "Password & Security",
   "settings.password.subtitle": "Changing your password signs out your other devices.",
   "settings.password.current": "Current Password",
@@ -1043,6 +1057,12 @@ export const am: Dictionary = {
   "tab.settings": "ቅንብሮች",
   "tab.notifications": "ማሳወቂያዎች",
   "tab.bills": "ሂሳቦች",
+  // Short labels used only by the bottom navigation bar.
+  "tab.short.booking": "ቀጠሮ",
+  "tab.short.card": "ካርድ",
+  "tab.short.home": "መነሻ",
+  "tab.short.appointments": "ቀጠሮዎች",
+  "tab.short.settings": "ቅንብር",
 
   // ===== Landing page =====
   "hero.title": "ቀጠሮ ያስይዙ፣ ካርድዎን ይዘው ይጓዙ፣ መዝገብዎን ይኑራቸው",
@@ -1357,6 +1377,10 @@ export const am: Dictionary = {
   "booking.directoryCountOther": "{total} ተቋማት",
   "booking.searchPlaceholder": "ሆስፒታሎችን በስም ወይም በአካባቢ ይፈልጉ...",
   "booking.allSpecialties": "ሁሉም ልዩ የሕክምና ክፍሎች",
+  "booking.clearSearch": "ፍለጋውን አጽዳ",
+  "booking.filter.all": "ሁሉም",
+  "booking.sort.az": "በስም",
+  "booking.sort.nearest": "ቅርብ",
   "booking.specialty.cardiology": "ካርዲዮሎጂ",
   "booking.specialty.generalMedicine": "አጠቃላይ ሕክምና",
   "booking.specialty.emergencyTrauma": "አስቸኳይ እና ጉዳት",
@@ -1852,6 +1876,9 @@ export const am: Dictionary = {
   "settings.privacy.consentSharing.hint": "የሚካፈሉት እርስዎ የሚመለከቱትና የሚፈቅዱት ማጠቃለያዎች ብቻ ናቸው።",
   "settings.privacy.sms.label": "የSMS ማሳሰቢያዎች",
   "settings.privacy.sms.hint": "የቀጠሮ ማሳሰቢያዎችን በጽሑፍ መልእክት ወደ የተረጋገጠው ስልክዎ።",
+  "settings.privacy.push.label": "የስልክ ማሳወቂያዎች",
+  "settings.privacy.push.hint": "መተግበሪያው ተዘግቶ ቢሆንም በማሳወቂያ አሞሌዎ ላይ በኢንዶድ ድምፅ መረጃ ይደርስዎታል። ዝርዝሩ የሚታየው በመተግበሪያው ውስጥ ብቻ ነው።",
+  "settings.privacy.push.denied": "ለኢንዶድ ማሳወቂያዎች ታግደዋል። በስልክዎ ቅንብሮች ውስጥ ይፍቀዱ፣ ከዚያ እንደገና ይሞክሩ።",
   "settings.password.title": "የይለፍ ቃልና ደህንነት",
   "settings.password.subtitle": "የይለፍ ቃልዎን መቀየር ሌሎች መሣሪያዎችዎን ያወጣል።",
   "settings.password.current": "የአሁኑ የይለፍ ቃል",

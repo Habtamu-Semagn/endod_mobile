@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
+import { COLORS } from "../lib/theme";
+import { Text } from "./ui/Text";
 
 type SelectProps = {
   value: string;
@@ -14,7 +16,7 @@ type SelectProps = {
 
 type Pos = { x: number; y: number; width: number; height: number };
 
-export function Select({ value, onValueChange, options, className = "", triggerTextClassName = "text-[#1c1c18]", triggerArrowClassName = "text-[#8d706e]", direction = "down", dialog = false }: SelectProps) {
+export function Select({ value, onValueChange, options, className = "", triggerTextClassName = "text-brand-heading", triggerArrowClassName = "text-brand-muted", direction = "down", dialog = false }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<Pos | null>(null);
   const triggerRef = useRef<any>(null);
@@ -37,7 +39,7 @@ export function Select({ value, onValueChange, options, className = "", triggerT
 
   return (
     <View className={`relative ${className}`} style={{ zIndex: 1000, elevation: 1000 }}>
-      <Pressable ref={triggerRef} onPress={openDropdown} className="flex-row items-center justify-start gap-2 border border-[#e1bfbc] rounded-lg px-3 py-1.5">
+      <Pressable ref={triggerRef} onPress={openDropdown} className="flex-row items-center justify-start gap-2 border border-brand-border rounded-lg px-3 py-1.5">
         <Text className={`${triggerTextClassName}`} numberOfLines={1}>
           {value}
         </Text>
@@ -46,9 +48,9 @@ export function Select({ value, onValueChange, options, className = "", triggerT
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         {dialog ? (
-          <Pressable style={{ flex: 1, backgroundColor: "rgba(28,28,24,0.5)", justifyContent: "center", alignItems: "center", padding: 24 }} onPress={close}>
-            <Pressable style={{ width: "100%", maxWidth: 360, backgroundColor: "#fcf9f3", borderRadius: 16, borderWidth: 1, borderColor: "#e1bfbc", overflow: "hidden" }} onPress={() => {}}>
-              <ScrollView style={{ maxHeight: 320 }}>
+          <Pressable style={{ flex: 1, backgroundColor: COLORS.overlay, justifyContent: "center", alignItems: "center", padding: 24 }} onPress={close}>
+            <Pressable style={{ width: "100%", maxWidth: 360, backgroundColor: COLORS.surface, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, overflow: "hidden" }} onPress={() => {}}>
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
                 {options.map((opt) => {
                   const active = opt === value;
                   return (
@@ -62,14 +64,14 @@ export function Select({ value, onValueChange, options, className = "", triggerT
                         paddingHorizontal: 16,
                         paddingVertical: 14,
                         borderBottomWidth: 1,
-                        borderBottomColor: "#e1bfbc",
-                        backgroundColor: active ? "#f6f3ed" : "transparent",
+                        borderBottomColor: COLORS.border,
+                        backgroundColor: active ? COLORS.surfaceAlt : "transparent",
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 14,
-                          color: active ? "#423238" : "#59413f",
+                          color: active ? COLORS.accent : COLORS.body,
                           fontWeight: active ? "600" : "400",
                         }}
                         numberOfLines={1}
@@ -92,16 +94,16 @@ export function Select({ value, onValueChange, options, className = "", triggerT
                   left: pos.x,
                   minWidth: dropdownMinWidth,
                   maxHeight: 240,
-                  backgroundColor: "#fcf9f3",
+                  backgroundColor: COLORS.surface,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: "#e1bfbc",
+                  borderColor: COLORS.border,
                   overflow: "hidden",
                   zIndex: 9999,
                   elevation: 9999,
                 }}
               >
-                <ScrollView style={{ maxHeight: 240 }}>
+                <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 240 }}>
                   {options.map((opt) => {
                     const active = opt === value;
                     return (
@@ -115,14 +117,14 @@ export function Select({ value, onValueChange, options, className = "", triggerT
                           paddingHorizontal: 16,
                           paddingVertical: 12,
                           borderBottomWidth: 1,
-                          borderBottomColor: "#e1bfbc",
-                          backgroundColor: active ? "#f6f3ed" : "transparent",
+                          borderBottomColor: COLORS.border,
+                          backgroundColor: active ? COLORS.surfaceAlt : "transparent",
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 14,
-                            color: active ? "#423238" : "#59413f",
+                            color: active ? COLORS.accent : COLORS.body,
                             fontWeight: active ? "600" : "400",
                           }}
                           numberOfLines={1}

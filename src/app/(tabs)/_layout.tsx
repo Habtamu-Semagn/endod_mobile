@@ -1,16 +1,26 @@
+import type { ComponentProps } from "react";
 import { Tabs } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, Pressable, type ColorValue } from "react-native";
+import { View, Pressable, Text, type ColorValue } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { AppHeader } from "../../components/AppHeader";
 import { useI18n } from "../../lib/i18n";
+import { COLORS, TAB_BAR_HEIGHT, TAB_BAR_MARGIN } from "../../lib/theme";
 
-const SURFACE = "#F5F1EA";
-const ON_SURFACE = "#FFFFFF";
-const ON_SURFACE_VARIANT = "#756E68";
-const INVERSE_SURFACE = "#2D2327";
-const INVERSE_ON_SURFACE = "#FFFFFF";
-const OUTLINE_VARIANT = "rgba(0,0,0,0.06)";
+export const unstable_settings = {
+  anchor: "index",
+};
+
+type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
+
+const INVERSE_SURFACE = COLORS.accentDeep;
+const INVERSE_ON_SURFACE = COLORS.surface;
+
+/** Height of one tab; the dark "active" pill fills it. */
+const TAB_ITEM_HEIGHT = 56;
+/** Label size; a label too wide for its tab shrinks a little, it is never cut. */
+const TAB_LABEL_SIZE = 11;
+/** Screens opened from elsewhere in the app that have no tab of their own. */
+const HIDDEN_TABS = new Set(["records", "notifications", "bills"]);
 
 const ICONS: Record<string, string[]> = {
   overview: [
@@ -38,7 +48,7 @@ const ICONS: Record<string, string[]> = {
 
 function TabIcon({ name, color }: { name: string; color: ColorValue }) {
   const paths = ICONS[name] ?? [];
-  const stroke = typeof color === "string" ? color : "#64748b";
+  const stroke = typeof color === "string" ? color : COLORS.muted;
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
       {paths.map((d, i) => (
@@ -55,111 +65,164 @@ function TabIcon({ name, color }: { name: string; color: ColorValue }) {
   );
 }
 
+/**
+ * The floating tab bar, drawn here instead of by the library.
+ *
+ * The library's bar sizes its items from the platform, the font and the safe
+ * area, so on some phones the labels were squeezed to a dot. Here every tab
+ * has a fixed height and an equal share of the width, and the phone's font
+ * size setting does not apply, so the bar looks the same on every device.
+ */
+function FloatingTabBar({ state, descriptors, emitter, navigateToTab, insets }: TabBarProps) {
+  const visible = state.routes.filter((route) => !HIDDEN_TABS.has(route.name));
+  const activeKey = state.routes[state.index]?.key;
+  return (
+    <View style={{ backgroundColor: COLORS.bg }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          height: TAB_BAR_HEIGHT,
+          paddingHorizontal: 6,
+          marginHorizontal: TAB_BAR_MARGIN,
+          marginBottom: TAB_BAR_MARGIN + insets.bottom,
+          backgroundColor: COLORS.surface,
+          borderRadius: 9999,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          shadowColor: COLORS.accentDeep,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.12,
+          shadowRadius: 20,
+          elevation: 10,
+        }}
+      >
+        {visible.map((route) => {
+          const focused = route.key === activeKey;
+          const { options } = descriptors[route.key];
+          const color = focused ? INVERSE_ON_SURFACE : COLORS.muted;
+          const label = typeof options.title === "string" ? options.title : route.name;
+          const onPress = () => {
+            const event = emitter.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+            if (!focused && !event.defaultPrevented) navigateToTab(route.key);
+          };
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              onLongPress={() => emitter.emit({ type: "tabLongPress", target: route.key })}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: TAB_ITEM_HEIGHT,
+                marginHorizontal: 2,
+                borderRadius: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: focused ? INVERSE_SURFACE : "transparent",
+              }}
+            >
+              {options.tabBarIcon?.({ focused, color, size: 22 })}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+                allowFontScaling={false}
+                style={{
+                  marginTop: 4,
+                  paddingHorizontal: 3,
+                  fontSize: TAB_LABEL_SIZE,
+                  lineHeight: TAB_LABEL_SIZE + 4,
+                  fontFamily: "PlusJakartaSans-Medium",
+                  color,
+                  textAlign: "center",
+                  includeFontPadding: false,
+                }}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const { t } = useI18n();
-  const insets = useSafeAreaInsets();
+
   return (
-    <View className="flex-1" style={{ backgroundColor: "transparent" }}>
+    <View className="flex-1" style={{ backgroundColor: COLORS.bg }}>
       <Tabs
+        backBehavior="initialRoute"
+        tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
           headerShown: true,
           header: () => <AppHeader />,
-          headerStyle: { backgroundColor: SURFACE },
-          tabBarActiveTintColor: INVERSE_ON_SURFACE,
-          tabBarInactiveTintColor: ON_SURFACE_VARIANT,
-          tabBarActiveBackgroundColor: INVERSE_SURFACE,
-          tabBarButton: (props: any) => (
-            <Pressable {...props} style={[props.style, { borderRadius: 16, overflow: "hidden", paddingVertical: 10, paddingHorizontal: 12, marginVertical: 4 }]} />
-          ),
-          tabBarStyle: {
-            backgroundColor: SURFACE,
-            borderTopWidth: 0,
-            paddingVertical: 6,
-            paddingHorizontal: 8,
-            height: 72,
-            marginHorizontal: 16,
-            marginBottom: 16 + insets.bottom,
-            borderRadius: 9999,
-            borderWidth: 1,
-            borderColor: OUTLINE_VARIANT,
-            shadowColor: "#2D1E14",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.12,
-            shadowRadius: 20,
-            elevation: 10,
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: "600",
-            fontFamily: "PlusJakartaSans-SemiBold",
-            marginTop: 2,
-          },
-          tabBarItemStyle: {
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 16,
-            overflow: "hidden",
-            paddingVertical: 0,
-            paddingHorizontal: 0,
-            marginHorizontal: 0,
-          },
+          headerStyle: { backgroundColor: COLORS.bg },
+          headerShadowVisible: false,
         }}
       >
         <Tabs.Screen
           name="booking"
           options={{
-            title: t("tab.booking"),
+            title: t("tab.short.booking"),
+            tabBarAccessibilityLabel: t("tab.booking"),
             tabBarIcon: ({ color }) => <TabIcon name="booking" color={color} />,
           }}
         />
         <Tabs.Screen
           name="card"
           options={{
-            title: t("tab.card"),
+            title: t("tab.short.card"),
+            tabBarAccessibilityLabel: t("tab.card"),
             tabBarIcon: ({ color }) => <TabIcon name="card" color={color} />,
           }}
         />
         <Tabs.Screen
           name="index"
           options={{
-            title: t("tab.home"),
+            title: t("tab.short.home"),
+            tabBarAccessibilityLabel: t("tab.home"),
             tabBarIcon: ({ color }) => <TabIcon name="overview" color={color} />,
           }}
         />
         <Tabs.Screen
           name="appointment"
           options={{
-            title: t("tab.appointments"),
+            title: t("tab.short.appointments"),
+            tabBarAccessibilityLabel: t("tab.appointments"),
             tabBarIcon: ({ color }) => <TabIcon name="appointment" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: t("tab.short.settings"),
+            tabBarAccessibilityLabel: t("tab.settings"),
+            tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
           }}
         />
         <Tabs.Screen
           name="records"
           options={{
             title: "Records",
-            tabBarItemStyle: { display: "none" },
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: t("tab.settings"),
-            tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
           }}
         />
         <Tabs.Screen
           name="notifications"
           options={{
             title: t("tab.notifications"),
-            tabBarItemStyle: { display: "none" },
           }}
         />
         <Tabs.Screen
           name="bills"
           options={{
             title: t("tab.bills"),
-            tabBarItemStyle: { display: "none" },
           }}
         />
       </Tabs>

@@ -1,4 +1,10 @@
 /** @type {import('tailwindcss').Config} */
+
+// The palette is read from `src/lib/theme.json` — the same file the app
+// imports in `src/lib/theme.ts`. There is only one set of colours, so a class
+// name and an inline style can never resolve to different values.
+const palette = require("./src/lib/theme.json");
+
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   darkMode: "class",
@@ -7,16 +13,25 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          bg: "#FCF9F3",
-          primary: "#AD292F",
-          heading: "#1C1C18",
-          muted: "#59413F",
-          border: "#E1BFBC",
-          inputbg: "#FFFFFF",
-          accent: "#423238",
+          bg: palette.bg,
+          surface: palette.surface,
+          alt: palette.surfaceAlt,
+          primary: palette.primary,
+          heading: palette.heading,
+          body: palette.body,
+          muted: palette.muted,
+          accent: palette.accent,
+          "accent-deep": palette.accentDeep,
+          danger: palette.danger,
+          "danger-soft": palette.dangerSoft,
+          success: palette.success,
+          "success-soft": palette.successSoft,
+          border: palette.border,
+          "on-dark": palette.onDark,
+          "on-dark-accent": palette.onDarkAccent,
+          overlay: palette.overlay,
+          inputbg: palette.surface,
         },
-        app: "#F6F9FA",
-        surface: "#fcf9f3",
       },
       fontFamily: {
         newsreader: ["Newsreader"],

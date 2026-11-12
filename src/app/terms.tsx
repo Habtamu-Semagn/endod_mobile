@@ -1,7 +1,8 @@
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable } from "react-native";
+import { Text } from "../components/ui/Text";
 
 const SECTIONS = [
   { title: "1. Acceptance of Terms", body: "By creating an account or using the ENDOD Health mobile application (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree, do not use the Service." },
@@ -20,16 +21,16 @@ export default function TermsScreen() {
   const router = useRouter();
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
-      <View className="bg-white border-b border-slate-200 px-4 py-3 flex-row items-center">
+      <View className="bg-white border-b border-brand-border px-4 py-3 flex-row items-center">
         <Pressable onPress={() => router.back()} className="mr-3">
-          <Text className="text-xl font-bold text-[#18242B]">←</Text>
+          <Text className="text-xl font-bold text-brand-heading">←</Text>
         </Pressable>
-        <Text className="text-base font-bold text-slate-900">Terms of Service</Text>
+        <Text className="text-base font-bold text-brand-heading">Terms of Service</Text>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         {SECTIONS.map((s) => (
           <View key={s.title} className="mb-4">
-            <Text className="text-sm font-bold text-[#18242B] mb-1">{s.title}</Text>
+            <Text className="text-sm font-bold text-brand-heading mb-1">{s.title}</Text>
             <Text className="text-sm text-brand-muted leading-relaxed">{s.body}</Text>
           </View>
         ))}

@@ -1,11 +1,21 @@
-import { ScrollView, Text, View, Pressable, Modal, Image, ActivityIndicator, Platform, ImageBackground } from "react-native";
+import { COLORS, TAB_CONTENT_PADDING } from "../../lib/theme";
+import { Text } from "../../components/ui/Text";
+import {
+  ScrollView,
+  View,
+  Pressable,
+  Modal,
+  Image,
+  ActivityIndicator,
+  Platform,
+  ImageBackground,
+} from "react-native";
 import { useState, useRef, useCallback } from "react";
 import { captureRef } from "react-native-view-shot";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library/legacy";
 import * as FileSystem from "expo-file-system/legacy";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Circle } from "react-native-svg";
 import QRCode from "react-native-qrcode-svg";
 import { DEFAULT_PROFILE } from "../../lib/data";
@@ -236,18 +246,20 @@ export default function HealthCardScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <View className="flex-1 bg-brand-bg">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }}>
         {/* ===== Digital Health Card ===== */}
-        <View ref={cardRef} collapsable={false} style={{ marginTop: 48 }}>
+        <View ref={cardRef} collapsable={false} style={{ marginTop: 24 }}>
         <LinearGradient
-          colors={["#423238", "#2b1f22", "#000000"]}
+          colors={[COLORS.accent, COLORS.accentDeep, COLORS.black]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ width: "100%", aspectRatio: 1.4, borderRadius: 16, overflow: "hidden" }}
+          // minHeight keeps every field visible on narrow screens, where the
+          // 1.4 aspect ratio would otherwise clip the bottom of the card.
+          style={{ width: "100%", aspectRatio: 1.4, minHeight: 264, borderRadius: 16, overflow: "hidden" }}
         >
           {/* Sheen */}
-          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.05)" }} />
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: COLORS.sheen }} />
           {/* Decorative rings */}
           <View style={{ position: "absolute", top: -64, right: -64, width: 224, height: 224, opacity: 0.06 }}>
             <Svg width={224} height={224} viewBox="0 0 200 200" fill="none">
@@ -264,24 +276,24 @@ export default function HealthCardScreen() {
                 <View className="flex-row items-center gap-2">
                   <Image
                     source={require("../../../assets/endod_logo.png")}
-                    style={{ width: 24, height: 24, tintColor: "#ffffff" }}
+                    style={{ width: 24, height: 24, tintColor: COLORS.surface }}
                     resizeMode="contain"
                     onLoadEnd={() => {}}
                   />
                   <Text className="font-extrabold tracking-tight text-white" style={{ fontSize: 22, lineHeight: 22 }}>Endod</Text>
                 </View>
-                <Text className="font-semibold text-[#94e0c0] uppercase tracking-widest mt-1" style={{ fontSize: 9 }}>
+                <Text className="font-semibold text-brand-on-dark-accent uppercase tracking-widest mt-1" style={{ fontSize: 11 }}>
                   {t("card.digitalId")}
                 </Text>
                 <Text className="font-bold text-white mt-3" style={{ fontSize: 16, fontFamily: "serif" }} numberOfLines={1}>
                   {fullName}
                 </Text>
-                <Text className="font-semibold text-[#94e0c0] mt-0.5" style={{ fontSize: 10 }} numberOfLines={1}>
+                <Text className="font-semibold text-brand-on-dark-accent mt-0.5" style={{ fontSize: 11 }} numberOfLines={1}>
                   {userId}
                 </Text>
               </View>
               {/* Contactless icon */}
-              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={1.8}>
+              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={COLORS.onDarkStroke} strokeWidth={1.8}>
                 <Path d="M8.5 8.5a5 5 0 0 1 0 7" strokeLinecap="round" />
                 <Path d="M12 6a8 8 0 0 1 0 12" strokeLinecap="round" />
                 <Path d="M15.5 3.5a11 11 0 0 1 0 17" strokeLinecap="round" />
@@ -293,26 +305,26 @@ export default function HealthCardScreen() {
               <View className="flex-1" style={{ gap: 6, marginTop: 8 }}>
                 <View className="flex-row" style={{ gap: 16 }}>
                   <View className="flex-1">
-                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Phone</Text>
+                    <Text className="font-semibold text-brand-on-dark uppercase tracking-wider" style={{ fontSize: 10 }}>Phone</Text>
                     <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }} numberOfLines={1}>{phone}</Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Age</Text>
+                    <Text className="font-semibold text-brand-on-dark uppercase tracking-wider" style={{ fontSize: 10 }}>Age</Text>
                     <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }}>{age}</Text>
                   </View>
                 </View>
                 <View>
-                  <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Address</Text>
+                  <Text className="font-semibold text-brand-on-dark uppercase tracking-wider" style={{ fontSize: 10 }}>Address</Text>
                   <Text className="font-semibold text-white mt-0.5" style={{ fontSize: 11 }} numberOfLines={2}>{city || address}</Text>
                 </View>
                 <View className="flex-row" style={{ gap: 16 }}>
                   <View className="flex-1">
-                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>E/contact</Text>
-                    <Text className="font-medium text-white/75 mt-0.5" style={{ fontSize: 10 }} numberOfLines={1}>{emergencyPhone}</Text>
+                    <Text className="font-semibold text-brand-on-dark uppercase tracking-wider" style={{ fontSize: 10 }}>E/contact</Text>
+                    <Text className="font-medium text-white/75 mt-0.5" style={{ fontSize: 11 }} numberOfLines={1}>{emergencyPhone}</Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="font-semibold text-[#94a3a8] uppercase tracking-wider" style={{ fontSize: 8 }}>Expires</Text>
-                    <Text className="font-semibold text-[#6ee7b7] mt-0.5" style={{ fontSize: 11 }}>{expiry}</Text>
+                    <Text className="font-semibold text-brand-on-dark uppercase tracking-wider" style={{ fontSize: 10 }}>Expires</Text>
+                    <Text className="font-semibold text-brand-on-dark-accent mt-0.5" style={{ fontSize: 11 }}>{expiry}</Text>
                   </View>
                 </View>
               </View>
@@ -326,31 +338,30 @@ export default function HealthCardScreen() {
         </LinearGradient>
         </View>
 
-
         {/* Show QR */}
         <View className="mt-6 items-center">
           <Pressable onPress={() => setQrOpen(true)}>
-            <Text className="text-xl font-semibold text-[#423238] underline">{t("card.showQr")}</Text>
+            <Text className="text-xl font-semibold text-brand-accent underline">{t("card.showQr")}</Text>
           </Pressable>
         </View>
 
         <Modal visible={qrOpen} transparent animationType="fade" onRequestClose={() => setQrOpen(false)}>
           <Pressable onPress={() => setQrOpen(false)} style={{ flex: 1, backgroundColor: "white", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <View style={{ width: "100%", maxWidth: 360, alignItems: "center" }} onStartShouldSetResponder={() => true}>
-              <Text className="text-sm font-semibold text-[#25343D] uppercase tracking-wider">{t("card.scanToVerify")}</Text>
+              <Text className="text-sm font-semibold text-brand-body uppercase tracking-wider">{t("card.scanToVerify")}</Text>
               <View style={{ marginVertical: 24, padding: 12, backgroundColor: "white", borderRadius: 12 }}>
                 <QRCode value={qrData} size={200} />
               </View>
-              <Text className="text-2xl font-bold text-[#18242B]">{fullName}</Text>
-              <Text className="text-base font-semibold text-[#423238] mt-1">{userId}</Text>
-              <Pressable onPress={() => setQrOpen(false)} className="mt-8 px-8 py-3 rounded-full border border-[#DCE4E6]">
-                <Text className="text-[#25343D] font-semibold">{t("card.close")}</Text>
+              <Text className="text-2xl font-bold text-brand-heading">{fullName}</Text>
+              <Text className="text-base font-semibold text-brand-accent mt-1">{userId}</Text>
+              <Pressable onPress={() => setQrOpen(false)} className="mt-8 px-8 py-3 rounded-full border border-brand-border">
+                <Text className="text-brand-body font-semibold">{t("card.close")}</Text>
               </Pressable>
             </View>
           </Pressable>
         </Modal>
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

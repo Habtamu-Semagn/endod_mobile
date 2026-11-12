@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text } from "./Text";
 
 type ToastValue = {
   showToast: (title: string, message?: string) => void;
@@ -25,11 +26,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast ? (
         <View
           pointerEvents="none"
-          className="absolute top-12 left-4 right-4 z-50 bg-slate-900 rounded-2xl px-4 py-3 shadow-lg"
+          className="absolute top-12 left-4 right-4 z-50 bg-brand-accent rounded-2xl px-4 py-3 shadow-lg"
         >
           <Text className="text-white font-bold text-sm">{toast.title}</Text>
           {toast.message ? (
-            <Text className="text-slate-300 text-xs mt-0.5">{toast.message}</Text>
+            <Text className="text-brand-alt text-xs mt-0.5">{toast.message}</Text>
           ) : null}
         </View>
       ) : null}

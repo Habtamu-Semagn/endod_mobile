@@ -1,0 +1,23 @@
+{
+  "bg": "#FCF9F3",
+  "surface": "#FFFFFF",
+  "surfaceAlt": "#F6F3ED",
+  "heading": "#1C1C18",
+  "body": "#59413F",
+  "muted": "#8D706E",
+  "primary": "#AD292F",
+  "accent": "#423238",
+  "accentDeep": "#2D2327",
+  "danger": "#BA1A1A",
+  "dangerSoft": "#FFDAD6",
+  "success": "#2E7D5B",
+  "successSoft": "#E3F0E9",
+  "border": "#E1BFBC",
+  "onDark": "#C9BFB9",
+  "onDarkAccent": "#94E0C0",
+  "overlay": "rgba(28,28,24,0.5)",
+  "scrimOnImage": "rgba(252,249,243,0.9)",
+  "sheen": "rgba(255,255,255,0.05)",
+  "onDarkStroke": "rgba(255,255,255,0.85)",
+  "black": "#000000"
+}
