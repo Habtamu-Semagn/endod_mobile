@@ -1,16 +1,53 @@
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, Pressable, type ColorValue } from "react-native";
+import { View, Pressable, useWindowDimensions, type ColorValue } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { AppHeader } from "../../components/AppHeader";
+import { FittingText } from "../../components/ui/FittingText";
 import { useI18n } from "../../lib/i18n";
+import { COLORS, TAB_BAR_HEIGHT, TAB_BAR_MARGIN } from "../../lib/theme";
 
-const SURFACE = "#F5F1EA";
-const ON_SURFACE = "#FFFFFF";
-const ON_SURFACE_VARIANT = "#756E68";
-const INVERSE_SURFACE = "#2D2327";
-const INVERSE_ON_SURFACE = "#FFFFFF";
-const OUTLINE_VARIANT = "rgba(0,0,0,0.06)";
+export const unstable_settings = {
+  anchor: "index",
+};
+
+const INVERSE_SURFACE = COLORS.accentDeep;
+const INVERSE_ON_SURFACE = COLORS.surface;
+
+/** Number of tabs that share the bar. */
+const TAB_COUNT = 5;
+/** Horizontal padding inside the floating bar. */
+const TAB_BAR_PADDING = 6;
+/** Horizontal padding of a single tab. */
+const TAB_BUTTON_PADDING = 2;
+/** Font size of a tab label on every device. */
+const TAB_LABEL_SIZE = 11;
+/**
+ * Line box of a tab label.
+ *
+ * Plus Jakarta Sans needs ~1.26em (≈13.9dp at 11dp), so a 14dp line box is
+ * the smallest height that renders every glyph — including the descenders of
+ * "Booking" and "Appointments" — without clipping.
+ */
+const TAB_LABEL_LINE_HEIGHT = 14;
+/**
+ * Gap between the icon and its label.
+ *
+ * The icon wrapper already leaves 2dp of dead space below the 22dp glyph, so
+ * the visual gap is 2dp on every item. No extra margin is needed.
+ */
+const TAB_LABEL_GAP = 0;
+/**
+ * Height of the wrapper that holds the 22dp icon.
+ *
+ * The default wrapper is 28dp tall, which leaves no room for the label inside
+ * the button's 50dp content box. Trimming it to 26dp frees the 2dp the label
+ * needs while the 22dp glyph stays at exactly the same y position (the 1dp
+ * saved above and below is dead space).
+ */
+const TAB_ICON_WRAPPER_HEIGHT = 26;
+/** Top padding that keeps the 22dp glyph at its original y position. */
+const TAB_ICON_TOP_PADDING = 9;
 
 const ICONS: Record<string, string[]> = {
   overview: [
@@ -38,7 +75,7 @@ const ICONS: Record<string, string[]> = {
 
 function TabIcon({ name, color }: { name: string; color: ColorValue }) {
   const paths = ICONS[name] ?? [];
-  const stroke = typeof color === "string" ? color : "#64748b";
+  const stroke = typeof color === "string" ? color : COLORS.muted;
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
       {paths.map((d, i) => (
@@ -58,44 +95,85 @@ function TabIcon({ name, color }: { name: string; color: ColorValue }) {
 export default function TabsLayout() {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+
+  // The bar keeps the same proportions on every phone: the margin, the icon
+  // and the label size do not change with the width of the screen. A label
+  // that does not fit into its share of the bar is shrunk by `FittingText`
+  // instead of being cut off.
+  const tabWidth = (width - TAB_BAR_MARGIN * 2 - TAB_BAR_PADDING * 2) / TAB_COUNT;
+  const tabLabelWidth = Math.max(24, tabWidth - TAB_BUTTON_PADDING * 2);
+
   return (
-    <View className="flex-1" style={{ backgroundColor: "transparent" }}>
+    <View className="flex-1" style={{ backgroundColor: COLORS.bg }}>
       <Tabs
+        backBehavior="initialRoute"
         screenOptions={{
           headerShown: true,
           header: () => <AppHeader />,
-          headerStyle: { backgroundColor: SURFACE },
+          headerStyle: { backgroundColor: COLORS.bg },
+          headerShadowVisible: false,
           tabBarActiveTintColor: INVERSE_ON_SURFACE,
-          tabBarInactiveTintColor: ON_SURFACE_VARIANT,
+          tabBarInactiveTintColor: COLORS.muted,
           tabBarActiveBackgroundColor: INVERSE_SURFACE,
+          // Always place the label under the icon, even in landscape or on a
+          // tablet, so the five items keep the same alignment everywhere.
+          tabBarLabelPosition: "below-icon",
+          tabBarShowLabel: true,
+          tabBarIconStyle: {
+            height: TAB_ICON_WRAPPER_HEIGHT,
+          },
           tabBarButton: (props: any) => (
-            <Pressable {...props} style={[props.style, { borderRadius: 16, overflow: "hidden", paddingVertical: 10, paddingHorizontal: 12, marginVertical: 4 }]} />
+            <Pressable {...props} style={[props.style, { borderRadius: 16, overflow: "hidden", minWidth: 0, paddingTop: TAB_ICON_TOP_PADDING, paddingBottom: 0, paddingHorizontal: TAB_BUTTON_PADDING, marginVertical: 4 }]} />
+          ),
+          tabBarLabel: ({ color, children }) => (
+            <FittingText
+              baseFontSize={TAB_LABEL_SIZE}
+              maxWidth={tabLabelWidth}
+              style={{
+                color,
+                fontWeight: "500",
+                fontFamily: "PlusJakartaSans-Medium",
+                marginTop: TAB_LABEL_GAP,
+                lineHeight: TAB_LABEL_LINE_HEIGHT,
+                textAlign: "center",
+                includeFontPadding: false,
+                minWidth: 0,
+                flexShrink: 1,
+              }}
+            >
+              {children}
+            </FittingText>
           ),
           tabBarStyle: {
-            backgroundColor: SURFACE,
+            backgroundColor: COLORS.surface,
             borderTopWidth: 0,
             paddingVertical: 6,
-            paddingHorizontal: 8,
-            height: 72,
-            marginHorizontal: 16,
-            marginBottom: 16 + insets.bottom,
+            paddingHorizontal: TAB_BAR_PADDING,
+            height: TAB_BAR_HEIGHT,
+            marginHorizontal: TAB_BAR_MARGIN,
+            marginBottom: TAB_BAR_MARGIN + insets.bottom,
             borderRadius: 9999,
             borderWidth: 1,
-            borderColor: OUTLINE_VARIANT,
-            shadowColor: "#2D1E14",
+            borderColor: COLORS.border,
+            shadowColor: COLORS.accentDeep,
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.12,
             shadowRadius: 20,
             elevation: 10,
           },
           tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: "600",
-            fontFamily: "PlusJakartaSans-SemiBold",
-            marginTop: 2,
+            fontSize: TAB_LABEL_SIZE,
+            fontWeight: "500",
+            fontFamily: "PlusJakartaSans-Medium",
+            marginTop: TAB_LABEL_GAP,
+            lineHeight: TAB_LABEL_LINE_HEIGHT,
+            textAlign: "center",
+            includeFontPadding: false,
           },
           tabBarItemStyle: {
             flex: 1,
+            minWidth: 0,
             alignItems: "center",
             justifyContent: "center",
             borderRadius: 16,
@@ -109,29 +187,41 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="booking"
           options={{
-            title: t("tab.booking"),
+            title: t("tab.short.booking"),
+            tabBarAccessibilityLabel: t("tab.booking"),
             tabBarIcon: ({ color }) => <TabIcon name="booking" color={color} />,
           }}
         />
         <Tabs.Screen
           name="card"
           options={{
-            title: t("tab.card"),
+            title: t("tab.short.card"),
+            tabBarAccessibilityLabel: t("tab.card"),
             tabBarIcon: ({ color }) => <TabIcon name="card" color={color} />,
           }}
         />
         <Tabs.Screen
           name="index"
           options={{
-            title: t("tab.home"),
+            title: t("tab.short.home"),
+            tabBarAccessibilityLabel: t("tab.home"),
             tabBarIcon: ({ color }) => <TabIcon name="overview" color={color} />,
           }}
         />
         <Tabs.Screen
           name="appointment"
           options={{
-            title: t("tab.appointments"),
+            title: t("tab.short.appointments"),
+            tabBarAccessibilityLabel: t("tab.appointments"),
             tabBarIcon: ({ color }) => <TabIcon name="appointment" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: t("tab.short.settings"),
+            tabBarAccessibilityLabel: t("tab.settings"),
+            tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -139,13 +229,6 @@ export default function TabsLayout() {
           options={{
             title: "Records",
             tabBarItemStyle: { display: "none" },
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: t("tab.settings"),
-            tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
           }}
         />
         <Tabs.Screen

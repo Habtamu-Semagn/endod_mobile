@@ -1,10 +1,11 @@
+import { TAB_CONTENT_PADDING } from "../../lib/theme";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, ScrollView, View } from "react-native";
 import { api, ApiError } from "../../lib/api";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { AppHeader } from "../../components/AppHeader";
 import { RowBones } from "../../components/skeleton";
+import { Text } from "../../components/ui/Text";
 
 type BillItem = { category: string; name: string; code?: string; amount: number; quantity: number };
 
@@ -28,9 +29,9 @@ function birr(santim: number): string {
 }
 
 const STATUS: Record<Bill["status"], { key: TranslationKey; className: string }> = {
-  open: { key: "bills.status.open", className: "bg-[#8d706e]/10 text-[#8d706e] border-[#8d706e]/20" },
-  paid: { key: "bills.status.paid", className: "bg-[#f6f3ed] text-[#59413f] border-[#e1bfbc]" },
-  voided: { key: "bills.status.voided", className: "bg-[#f6f3ed] text-[#59413f] border-[#e1bfbc]" },
+  open: { key: "bills.status.open", className: "bg-brand-muted/10 text-brand-muted border-brand-muted/20" },
+  paid: { key: "bills.status.paid", className: "bg-brand-alt text-brand-body border-brand-border" },
+  voided: { key: "bills.status.voided", className: "bg-brand-alt text-brand-body border-brand-border" },
 };
 
 export default function BillsScreen({ hideTitle = false }: { hideTitle?: boolean }) {
@@ -53,71 +54,71 @@ export default function BillsScreen({ hideTitle = false }: { hideTitle?: boolean
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <View className="flex-1 bg-brand-bg">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }}>
         <View className="w-full gap-6 pb-6">
-          <View className="pb-6 border-b border-[#e1bfbc]/80">
-            <Text className="text-sm text-[#59413f] mt-1">{t("bills.subtitle")}</Text>
+          <View className="pb-6 border-b border-brand-border/80">
+            <Text className="text-sm text-brand-body mt-1">{t("bills.subtitle")}</Text>
             {bills && bills.open_total > 0 && (
-              <View className="mt-3 self-start px-3 py-1.5 rounded-lg bg-[#8d706e]/10 border border-[#8d706e]/20">
-                <Text className="text-sm font-semibold text-[#8d706e]">{t("bills.openTotal", { amount: birr(bills.open_total) })}</Text>
+              <View className="mt-3 self-start px-3 py-1.5 rounded-lg bg-brand-muted/10 border border-brand-muted/20">
+                <Text className="text-sm font-semibold text-brand-muted">{t("bills.openTotal", { amount: birr(bills.open_total) })}</Text>
               </View>
             )}
           </View>
 
-          {error ? <Text className="text-sm text-[#ba1a1a]">{error}</Text> : null}
+          {error ? <Text className="text-sm text-brand-danger">{error}</Text> : null}
           {!bills && !error ? <RowBones /> : null}
           {bills && bills.items.length === 0 ? (
-            <Text className="text-sm text-[#59413f]">{t("bills.empty")}</Text>
+            <Text className="text-sm text-brand-body">{t("bills.empty")}</Text>
           ) : null}
 
           {bills?.items.map((bill) => {
             const status = STATUS[bill.status] ?? STATUS.open;
             const isPaid = bill.status === "paid";
             const isVoided = bill.status === "voided";
-            const statusColor = bill.status === "open" ? "text-[#8d706e]" : "text-[#59413f]";
-            const statusBg = bill.status === "open" ? "bg-[#8d706e]/10 border-[#8d706e]/20" : "bg-[#f6f3ed] border-[#e1bfbc]";
+            const statusColor = bill.status === "open" ? "text-brand-muted" : "text-brand-body";
+            const statusBg = bill.status === "open" ? "bg-brand-muted/10 border-brand-muted/20" : "bg-brand-alt border-brand-border";
             return (
-              <View key={bill.id} className="bg-white rounded-2xl border border-[#e1bfbc] p-4 gap-3">
+              <View key={bill.id} className="bg-white rounded-2xl border border-brand-border p-4 gap-3">
                 <View className="flex-row items-start justify-between gap-3">
                   <View>
-                    <Text className="text-sm font-bold text-[#1c1c18]">{bill.hospital_name ?? t("bills.title")}</Text>
-                    <Text className="text-xs text-[#8d706e] mt-0.5">{new Date(bill.created_at).toLocaleDateString(locale)}</Text>
+                    <Text className="text-sm font-bold text-brand-heading">{bill.hospital_name ?? t("bills.title")}</Text>
+                    <Text className="text-xs text-brand-muted mt-0.5">{new Date(bill.created_at).toLocaleDateString(locale)}</Text>
                   </View>
                   <View className={`px-2 py-0.5 rounded-full border ${statusBg}`}>
                     <Text className={`text-xs font-medium ${statusColor}`}>{t(status.key)}</Text>
                   </View>
                 </View>
-                <View className="mt-3 border-t border-[#f6f3ed]">
+                <View className="mt-3 border-t border-brand-alt">
                   {bill.items.map((item, index) => (
-                    <View key={index} className="flex-row justify-between py-1.5 border-b border-[#f6f3ed]">
-                      <Text className="text-sm text-[#59413f]">{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</Text>
-                      <Text className="text-sm text-[#59413f] tabular-nums">ETB {birr(item.amount * item.quantity)}</Text>
+                    <View key={index} className="flex-row justify-between py-1.5 border-b border-brand-alt">
+                      <Text className="text-sm text-brand-body">{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</Text>
+                      <Text className="text-sm text-brand-body tabular-nums">ETB {birr(item.amount * item.quantity)}</Text>
                     </View>
                   ))}
                 </View>
-                <View className="mt-3 pt-3 border-t border-[#e1bfbc] gap-1">
+                <View className="mt-3 pt-3 border-t border-brand-border gap-1">
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-[#59413f]">{t("bills.subtotal")}</Text>
-                    <Text className="text-sm text-[#59413f] tabular-nums">ETB {birr(bill.subtotal)}</Text>
+                    <Text className="text-sm text-brand-body">{t("bills.subtotal")}</Text>
+                    <Text className="text-sm text-brand-body tabular-nums">ETB {birr(bill.subtotal)}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-[#59413f]">{t("bills.fee")}</Text>
-                    <Text className="text-sm text-[#59413f] tabular-nums">ETB {birr(bill.service_fee)}</Text>
+                    <Text className="text-sm text-brand-body">{t("bills.fee")}</Text>
+                    <Text className="text-sm text-brand-body tabular-nums">ETB {birr(bill.service_fee)}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm font-bold text-[#1c1c18]">{t("bills.total")}</Text>
-                    <Text className="text-sm font-bold text-[#1c1c18] tabular-nums">ETB {birr(bill.total)}</Text>
+                    <Text className="text-sm font-bold text-brand-heading">{t("bills.total")}</Text>
+                    <Text className="text-sm font-bold text-brand-heading tabular-nums">ETB {birr(bill.total)}</Text>
                   </View>
                 </View>
                 {bill.status === "open" && (
-                  <Text className="mt-3 text-xs text-[#59413f]">{t("bills.payAtHospital", { amount: birr(bill.total) })}</Text>
+                  <Text className="mt-3 text-xs text-brand-body">{t("bills.payAtHospital", { amount: birr(bill.total) })}</Text>
                 )}
               </View>
             );
           })}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

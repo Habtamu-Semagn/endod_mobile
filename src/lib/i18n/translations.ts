@@ -80,6 +80,13 @@ export const en = {
   "tab.settings": "Settings",
   "tab.notifications": "Notifications",
   "tab.bills": "Bills",
+  // Short labels used only by the bottom navigation bar, so the five items
+  // stay on one line and never clip on narrow screens.
+  "tab.short.booking": "Book",
+  "tab.short.card": "Card",
+  "tab.short.home": "Home",
+  "tab.short.appointments": "Appoint..",
+  "tab.short.settings": "Settings",
 
   // ===== Landing page =====
   "hero.title": "Book care, carry your card, keep your records",
@@ -1043,6 +1050,12 @@ export const am: Dictionary = {
   "tab.settings": "ቅንብሮች",
   "tab.notifications": "ማሳወቂያዎች",
   "tab.bills": "ሂሳቦች",
+  // Short labels used only by the bottom navigation bar.
+  "tab.short.booking": "ቀጠሮ",
+  "tab.short.card": "ካርድ",
+  "tab.short.home": "መነሻ",
+  "tab.short.appointments": "ቀጠሮዎች",
+  "tab.short.settings": "ቅንብር",
 
   // ===== Landing page =====
   "hero.title": "ቀጠሮ ያስይዙ፣ ካርድዎን ይዘው ይጓዙ፣ መዝገብዎን ይኑራቸው",

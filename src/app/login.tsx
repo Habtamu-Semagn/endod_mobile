@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Text } from "../components/ui/Text";
 import {
   Image,
   Keyboard,
@@ -6,7 +7,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
@@ -19,6 +19,7 @@ import { api } from "../lib/api";
 import { Passkey } from "react-native-passkey";
 import { PasskeyModal } from "../components/PasskeyModal";
 import { Alert } from "react-native";
+import { COLORS } from "../lib/theme";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -157,15 +158,16 @@ export default function LoginScreen() {
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        enabled
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={Platform.OS === "ios"}
+        behavior="padding"
         keyboardVerticalOffset={0}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: keyboardVisible ? -60 : 0 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: Platform.OS === "ios" && keyboardVisible ? -60 : 0 }}
           keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           className="px-6 py-8"
         >
           {/* Brand */}
@@ -204,7 +206,7 @@ export default function LoginScreen() {
               }
             />
 
-            {error ? <Text className="text-xs text-rose-500 mb-3 -mt-1">{error}</Text> : null}
+            {error ? <Text className="text-xs text-brand-danger mb-3 -mt-1">{error}</Text> : null}
 
             <Button title="Sign In" variant="dark" size="lg" loading={submitting} onPress={handleSubmit} />
 
@@ -242,14 +244,14 @@ function EyeIcon({ open }: { open: boolean }) {
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d={open ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z"}
-        stroke="#59413f"
+        stroke={COLORS.body}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-        stroke="#59413f"
+        stroke={COLORS.body}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"

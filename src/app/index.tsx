@@ -3,6 +3,7 @@ import { Image, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect } from "expo-router";
 import { useSession } from "../lib/session";
+import { COLORS } from "../lib/theme";
 
 export default function Index() {
   const { session } = useSession();
@@ -15,11 +16,11 @@ export default function Index() {
 
   if (!ready) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#FCF9F3" }} edges={["top", "bottom", "left", "right"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }} edges={["top", "bottom", "left", "right"]}>
         <View
           style={{
             flex: 1,
-            backgroundColor: "#FCF9F3",
+            backgroundColor: COLORS.bg,
             alignItems: "center",
             justifyContent: "center",
           }}

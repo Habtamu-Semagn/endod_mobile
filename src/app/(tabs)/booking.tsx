@@ -1,8 +1,10 @@
+import { COLORS, TAB_CONTENT_PADDING } from "../../lib/theme";
+import { px, useFittedHeight } from "../../lib/layout";
 import { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { WebView } from "react-native-webview";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import { Text } from "../../components/ui/Text";
 const isWeb = (typeof navigator !== "undefined" && typeof document !== "undefined");
 let MapView: any = null;
 let Marker: any = null;
@@ -44,6 +46,8 @@ export default function BookingScreen() {
   const { showToast } = useToast();
   const { t } = useI18n();
   const { session } = useSession();
+  // The map shrinks on shorter screens so the hospital list stays reachable.
+  const mapHeight = useFittedHeight(450, 0.42, 280);
   const patientId = session ? `${session.firstName} ${session.lastName}`.trim() : "—";
 
   const [query, setQuery] = useState("");
@@ -67,8 +71,8 @@ export default function BookingScreen() {
           rating: "",
           status: "Open",
           tags: [...(f.departments ?? []), f.ownership === "private" ? "Private" : "Public"],
-          iconBg: "bg-[#f6f3ed]",
-          iconText: "text-[#1c1c18]",
+          iconBg: "bg-brand-alt",
+          iconText: "text-brand-heading",
           latitude: f.latitude,
           longitude: f.longitude,
           location: [f.city, f.country].filter(Boolean).join(", "),
@@ -215,7 +219,7 @@ const mapHtml = `<!DOCTYPE html><html><head><meta name="viewport" content="width
 <script>
 var map=L.map('map',{zoomControl:true,touchZoom:true,tap:true,dragging:true}).setView(${center},13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
-${coords ? `L.circleMarker([${coords.latitude},${coords.longitude}],{color:'#AD292F',radius:8}).addTo(map).bindPopup('You are here');` : ""}
+${coords ? `L.circleMarker([${coords.latitude},${coords.longitude}],{color:'${COLORS.primary}',radius:8}).addTo(map).bindPopup('You are here');` : ""}
 var pts=${JSON.stringify(facilities.map((h) => ({ id: h.id, name: h.name, lat: h.latitude, lng: h.longitude })))};
 pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',function(){ if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(p.id); }); });
 </script></body></html>`;
@@ -233,16 +237,16 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
   }, [facilities]);
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-      <ScrollView scrollEnabled={!mapTouching} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+    <View className="flex-1 bg-brand-bg">
+      <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={!mapTouching} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }} keyboardShouldPersistTaps="handled">
         {/* Search */}
-        <View className="bg-white p-4 rounded-2xl border border-[#e1bfbc] mb-3" style={{ zIndex: 1000, elevation: 10 }}>
+        <View className="bg-white p-4 rounded-2xl border border-brand-border mb-3" style={{ zIndex: 1000, elevation: 10 }}>
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search hospitals, specialty, location…"
-            className="w-full px-3 py-2 text-sm rounded-xl border border-[#e1bfbc] text-[#1c1c18]"
-            placeholderTextColor="#8d706e"
+            className="w-full px-3 py-2 text-sm rounded-xl border border-brand-border text-brand-heading"
+            placeholderTextColor={COLORS.muted}
           />
           <View className="flex-row mt-3 flex-wrap gap-2 items-center">
             <View>
@@ -286,7 +290,7 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
           onTouchStart={() => setMapTouching(true)}
           onTouchEnd={() => setMapTouching(false)}
           onTouchCancel={() => setMapTouching(false)}
-          style={{ height: 450, borderRadius: 16, overflow: "hidden", marginBottom: 12, borderWidth: 1, borderColor: "#e1bfbc", zIndex: 0, elevation: 0 }}
+          style={{ height: mapHeight, borderRadius: 16, overflow: "hidden", marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, zIndex: 0, elevation: 0 }}
         >
           {typeof document !== "undefined" ? (
             <iframe key={`map-${mapReload}`} title="Hospitals map" srcDoc={mapHtml} style={{ width: "100%", height: "100%", border: 0 }} />
@@ -298,22 +302,22 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
         {/* Hospital Grid */}
         {facilities.length === 0 ? (
           <View className="items-center py-10">
-            <Text className="text-sm text-[#8d706e]">{t("booking.noMatch")}</Text>
+            <Text className="text-sm text-brand-muted">{t("booking.noMatch")}</Text>
           </View>
         ) : (
           facilities.map((h) => (
             <Card key={h.id} className="mb-3">
               <View className="flex-row items-center justify-between gap-3">
                 <View className="flex-row items-center gap-3 flex-1 min-w-0">
-                  <View className="w-10 h-10 rounded-xl bg-[#f6f3ed] border border-[#e1bfbc] items-center justify-center">
-                    <Text className="text-[#1c1c18] font-bold text-sm">{h.initials}</Text>
+                  <View className="w-10 h-10 rounded-xl bg-brand-alt border border-brand-border items-center justify-center">
+                    <Text className="text-brand-heading font-bold text-sm">{h.initials}</Text>
                   </View>
                   <View className="flex-1 min-w-0">
-                    <Text className="text-sm font-bold text-[#1c1c18]">{h.name}</Text>
-                    <Text className="text-xs text-[#59413f] mt-0.5">{h.tags.slice(0, 3).join(" · ")}</Text>
+                    <Text className="text-sm font-bold text-brand-heading">{h.name}</Text>
+                    <Text className="text-xs text-brand-body mt-0.5">{h.tags.slice(0, 3).join(" · ")}</Text>
                   </View>
                 </View>
-                <Pressable onPress={() => openBooking(h)} className="px-4 py-2 rounded-xl bg-[#423238]">
+                <Pressable onPress={() => openBooking(h)} className="px-4 py-2 rounded-xl bg-brand-accent">
                   <Text className="text-white text-xs font-semibold">{t("booking.bookNow")}</Text>
                 </Pressable>
               </View>
@@ -325,25 +329,25 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
       {/* Booking modal */}
       <Sheet visible={bookingOpen} onClose={closeBooking} onDismiss={() => setSelected(null)} title={selected ? selected.name : ""} badge="Hospital Booking" subtitle={selected ? (
         <View className="flex-row items-center gap-3">
-          <Text className="text-xs text-[#59413f]">{selected.location}</Text>
-          <Text className="text-xs text-[#59413f]">{selected.phone}</Text>
+          <Text className="text-xs text-brand-body">{selected.location}</Text>
+          <Text className="text-xs text-brand-body">{selected.phone}</Text>
         </View>
       ) : undefined}>
         {selected ? (
           <View>
-            <View className="bg-[#f6f3ed] rounded-xl p-3 border border-[#f6f3ed] flex-row items-center justify-between mb-5">
+            <View className="bg-brand-alt rounded-xl p-3 border border-brand-alt flex-row items-center justify-between mb-5">
               <View className="flex-row items-center gap-2">
-                <View className="w-6 h-6 rounded-full bg-[#f6f3ed] items-center justify-center">
-                  <Text className="text-[#1c1c18] text-[10px] font-bold">P</Text>
+                <View className="w-6 h-6 rounded-full bg-brand-alt items-center justify-center">
+                  <Text className="text-brand-heading text-[11px] font-bold">P</Text>
                 </View>
-                <Text className="text-xs font-medium text-[#59413f]">{t("booking.patient", { id: patientId })}</Text>
+                <Text className="text-xs font-medium text-brand-body">{t("booking.patient", { id: patientId })}</Text>
               </View>
             </View>
 
             <View className="mb-3">
-              <Text className="text-xs font-semibold text-[#59413f] mb-1">{t("booking.selectDate")}</Text>
-              <Pressable onPress={() => setShowDatePicker(true)} className="bg-[#fcf9f3] rounded-xl border border-[#e1bfbc] px-3.5 py-3">
-                <Text className="text-sm text-[#1c1c18]">{bookingDate || t("booking.selectDate")}</Text>
+              <Text className="text-xs font-semibold text-brand-body mb-1">{t("booking.selectDate")}</Text>
+              <Pressable onPress={() => setShowDatePicker(true)} className="bg-brand-alt rounded-xl border border-brand-border px-3.5 py-3">
+                <Text className="text-sm text-brand-heading">{bookingDate || t("booking.selectDate")}</Text>
               </Pressable>
               {showDatePicker ? (
                 <DateTimePicker
@@ -364,9 +368,9 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
             </View>
 
             <View className="mb-3">
-              <Text className="text-xs font-semibold text-[#59413f] mb-1">{t("booking.visitTime")}</Text>
-              <Pressable onPress={() => setShowTimePicker(true)} className="bg-[#fcf9f3] rounded-xl border border-[#e1bfbc] px-3.5 py-3">
-                <Text className="text-sm text-[#1c1c18]">{bookingTime || t("booking.visitTime")}</Text>
+              <Text className="text-xs font-semibold text-brand-body mb-1">{t("booking.visitTime")}</Text>
+              <Pressable onPress={() => setShowTimePicker(true)} className="bg-brand-alt rounded-xl border border-brand-border px-3.5 py-3">
+                <Text className="text-sm text-brand-heading">{bookingTime || t("booking.visitTime")}</Text>
               </Pressable>
               {showTimePicker ? (
                 <DateTimePicker
@@ -386,7 +390,7 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
             </View>
 
             <View className="mb-3" style={{ zIndex: 2000, elevation: 2000 }}>
-              <Text className="text-xs font-semibold text-[#59413f] mb-1">{t("booking.arrivalWindow")}</Text>
+              <Text className="text-xs font-semibold text-brand-body mb-1">{t("booking.arrivalWindow")}</Text>
               <Select
                 value={t(`booking.timeWindow.${timeWindow}` as any)}
                 onValueChange={(v) => {
@@ -398,7 +402,7 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
             </View>
 
             <View className="mb-4" style={{ zIndex: 1000, elevation: 1000 }}>
-              <Text className="text-xs font-semibold text-[#59413f] mb-1">{t("booking.departmentClinic")}</Text>
+              <Text className="text-xs font-semibold text-brand-body mb-1">{t("booking.departmentClinic")}</Text>
               <Select
                 value={bookingDepartment ? bookingDepartment : t("booking.notSure")}
                 onValueChange={(v) => setBookingDepartment(v === t("booking.notSure") ? "" : v)}
@@ -414,16 +418,16 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
               multiline
             />
 
-            <Text className="text-[11px] text-[#8d706e] mt-2 mb-4">
+            <Text className="text-[11px] text-brand-muted mt-2 mb-4">
               {t("booking.paymentNote")}
             </Text>
 
-            <View className="pt-4 border-t border-[#f6f3ed] flex-row items-center justify-end gap-3">
-              {formError ? <Text className="text-xs text-rose-500 flex-1">{formError}</Text> : null}
-              <Pressable onPress={closeBooking} className="px-4 py-2 rounded-xl border border-[#e1bfbc]">
-                <Text className="text-xs font-semibold text-[#59413f]">{t("common.cancel")}</Text>
+            <View className="pt-4 border-t border-brand-alt flex-row items-center justify-end gap-3">
+              {formError ? <Text className="text-xs text-brand-danger flex-1">{formError}</Text> : null}
+              <Pressable onPress={closeBooking} className="px-4 py-2 rounded-xl border border-brand-border">
+                <Text className="text-xs font-semibold text-brand-body">{t("common.cancel")}</Text>
               </Pressable>
-              <Pressable onPress={confirmBooking} className="px-5 py-2 rounded-xl bg-black active:bg-[#1c1c18]">
+              <Pressable onPress={confirmBooking} className="px-5 py-2 rounded-xl bg-brand-accent active:bg-brand-heading">
                 <Text className="text-white text-xs font-semibold">{t("booking.submit")}</Text>
               </Pressable>
             </View>
@@ -433,31 +437,31 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
 
       {/* Success modal */}
       <Modal visible={successOpen} transparent animationType="none" onRequestClose={() => setSuccessOpen(false)} onDismiss={() => setBooked(null)}>
-        <Pressable className="flex-1 bg-[#1c1c18]/60 items-center justify-center p-4" onPress={() => setSuccessOpen(false)}>
-          <Pressable className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[#e1bfbc] items-center" onPress={() => {}}>
-            <View className="w-14 h-14 rounded-full bg-[#f6f3ed] items-center justify-center mb-4">
-              <Text className="text-[#1c1c18] text-2xl font-bold">✓</Text>
+        <Pressable className="flex-1 bg-brand-heading/60 items-center justify-center p-4" onPress={() => setSuccessOpen(false)}>
+          <Pressable className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-brand-border items-center" onPress={() => {}}>
+            <View className="w-14 h-14 rounded-full bg-brand-alt items-center justify-center mb-4">
+              <Text className="text-brand-heading text-2xl font-bold">✓</Text>
             </View>
-            <Text className="text-lg font-bold text-[#1c1c18]">{t("booking.visitBooked")}</Text>
-            <Text className="text-xs text-[#59413f] mt-1 text-center">
+            <Text className="text-lg font-bold text-brand-heading">{t("booking.visitBooked")}</Text>
+            <Text className="text-xs text-brand-body mt-1 text-center">
               {booked ? t("booking.savedAt", { name: booked.name }) : ""}
             </Text>
-            <View className="bg-[#f6f3ed] rounded-xl p-4 my-4 w-full border border-[#f6f3ed]">
+            <View className="bg-brand-alt rounded-xl p-4 my-4 w-full border border-brand-alt">
               <View className="flex-row justify-between mb-2">
-                <Text className="text-[#8d706e] text-xs">{t("booking.hospital")}</Text>
-                <Text className="font-bold text-[#1c1c18] text-xs text-right">{booked?.name}</Text>
+                <Text className="text-brand-muted text-xs">{t("booking.hospital")}</Text>
+                <Text className="font-bold text-brand-heading text-xs text-right">{booked?.name}</Text>
               </View>
               <View className="flex-row justify-between">
-                <Text className="text-[#8d706e] text-xs">{t("booking.reference")}</Text>
-                <Text className="font-mono font-bold text-[#1c1c18] text-xs">{(booked?.id ?? "").slice(0, 8).toUpperCase()}</Text>
+                <Text className="text-brand-muted text-xs">{t("booking.reference")}</Text>
+                <Text className="font-mono font-bold text-brand-heading text-xs">{(booked?.id ?? "").slice(0, 8).toUpperCase()}</Text>
               </View>
             </View>
-            <Pressable onPress={() => setSuccessOpen(false)} className="w-full py-2.5 rounded-xl bg-black active:bg-[#1c1c18]">
+            <Pressable onPress={() => setSuccessOpen(false)} className="w-full py-2.5 rounded-xl bg-brand-accent active:bg-brand-heading">
               <Text className="text-white font-semibold text-xs text-center">{t("common.done")}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }

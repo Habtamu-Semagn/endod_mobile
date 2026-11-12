@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Image, Modal, Pressable, Text, View } from "react-native";
+import { Image, Modal, Pressable, View } from "react-native";
+import { COLORS } from "../lib/theme";
+import { Text } from "./ui/Text";
 
 const PASSKEY_IMAGES = [
   require("../../assets/images/passkey_1.png"),
@@ -53,7 +55,7 @@ export function PasskeyModal({
       <View
         style={{
           flex: 1,
-          backgroundColor: "rgba(58,59,60,0.25)",
+          backgroundColor: COLORS.overlay,
           alignItems: "center",
           justifyContent: "center",
           padding: 16,
@@ -63,17 +65,17 @@ export function PasskeyModal({
           style={{
             width: "100%",
             maxWidth: 370,
-            backgroundColor: "#ffffff",
+            backgroundColor: COLORS.surface,
             borderRadius: 28,
             overflow: "hidden",
-            shadowColor: "#000",
+            shadowColor: COLORS.black,
             shadowOffset: { width: 0, height: 20 },
             shadowOpacity: 0.12,
             shadowRadius: 45,
             elevation: 12,
           }}
         >
-          <View style={{ width: "100%", overflow: "hidden", backgroundColor: "#eaf4f1" }}>
+          <View style={{ width: "100%", overflow: "hidden", backgroundColor: COLORS.surfaceAlt }}>
             <Image
               source={PASSKEY_IMAGES[imageIndex]}
               style={{ width: "100%", height: 176 }}
@@ -86,7 +88,7 @@ export function PasskeyModal({
               style={{
                 fontSize: 17,
                 fontWeight: "700",
-                color: "#1F2124",
+                color: COLORS.heading,
                 textAlign: "center",
                 marginBottom: 8,
               }}
@@ -95,9 +97,9 @@ export function PasskeyModal({
             </Text>
             <Text
               style={{
-                fontSize: 13.5,
+                fontSize: 13,
                 lineHeight: 20,
-                color: "#6E7179",
+                color: COLORS.body,
                 textAlign: "center",
                 paddingHorizontal: 4,
                 marginBottom: 24,
@@ -115,14 +117,14 @@ export function PasskeyModal({
                   paddingVertical: 12,
                   paddingHorizontal: 16,
                   borderRadius: 12,
-                  backgroundColor: "#ffffff",
+                  backgroundColor: COLORS.surface,
                   borderWidth: 1,
-                  borderColor: "#E1E3E8",
+                  borderColor: COLORS.border,
                   alignItems: "center",
                   opacity: busy ? 0.5 : 1,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#383A42" }}>{cancelLabel}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.accent }}>{cancelLabel}</Text>
               </Pressable>
               <Pressable
                 onPress={onConfirm}
@@ -132,12 +134,12 @@ export function PasskeyModal({
                   paddingVertical: 12,
                   paddingHorizontal: 16,
                   borderRadius: 12,
-                  backgroundColor: "#1F2124",
+                  backgroundColor: COLORS.heading,
                   alignItems: "center",
                   opacity: busy ? 0.5 : 1,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#ffffff" }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.surface }}>
                   {busy ? "Working…" : confirmLabel}
                 </Text>
               </Pressable>

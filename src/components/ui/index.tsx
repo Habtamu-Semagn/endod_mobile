@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
+import { COLORS } from "../../lib/theme";
+import { Text } from "./Text";
 
 type ButtonProps = {
   title: string;
@@ -15,7 +17,7 @@ type ButtonProps = {
 const VARIANTS: Record<string, string> = {
   primary: "bg-brand-primary active:bg-brand-accent",
   secondary: "bg-brand-primary active:bg-brand-accent",
-  dark: "bg-[#2D2327] active:bg-[#423238]",
+  dark: "bg-brand-accent-deep active:bg-brand-accent",
   outline: "bg-white border border-brand-border active:bg-brand-bg",
   ghost: "bg-transparent active:bg-brand-bg",
 };
@@ -46,7 +48,7 @@ export function Button({
       className={`${VARIANTS[variant]} ${height} ${fullWidth ? "w-full" : ""} rounded-xl flex-row items-center justify-center gap-2 ${disabled ? "opacity-50" : ""}`}
     >
       {loading ? (
-        <ActivityIndicator color="#ffffff" />
+        <ActivityIndicator color={COLORS.surface} />
       ) : (
         <>
           {icon}
@@ -65,7 +67,7 @@ type CardProps = {
 
 export function Card({ children, className = "", padded = true }: CardProps) {
   return (
-    <View className={`bg-white rounded-2xl border border-slate-200/80 shadow-sm ${padded ? "p-4" : ""} ${className}`}>
+    <View className={`bg-white rounded-2xl border border-brand-border shadow-sm ${padded ? "p-4" : ""} ${className}`}>
       {children}
     </View>
   );
@@ -83,11 +85,11 @@ export function Chip({ label, selected = false, onPress }: ChipProps) {
       onPress={onPress}
       className={`px-4 py-2 rounded-full border mr-2 ${
         selected
-          ? "bg-emerald-600 border-emerald-600"
-          : "bg-white border-slate-200 active:bg-slate-50"
+          ? "bg-brand-primary border-brand-primary"
+          : "bg-white border-brand-border active:bg-brand-alt"
       }`}
     >
-      <Text className={`text-xs font-semibold ${selected ? "text-white" : "text-slate-600"}`}>
+      <Text className={`text-xs font-semibold ${selected ? "text-white" : "text-brand-muted"}`}>
         {label}
       </Text>
     </Pressable>
@@ -100,11 +102,11 @@ type BadgeProps = {
 };
 
 const TONES: Record<string, string> = {
-  emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  rose: "bg-rose-50 text-rose-700 border-rose-200",
-  slate: "bg-slate-100 text-slate-600 border-slate-200",
-  teal: "bg-teal-50 text-teal-700 border-teal-200",
-  blue: "bg-blue-50 text-blue-700 border-blue-200",
+  emerald: "bg-brand-success-soft text-brand-success border-brand-success",
+  rose: "bg-brand-danger-soft text-brand-danger border-brand-danger",
+  slate: "bg-brand-alt text-brand-muted border-brand-border",
+  teal: "bg-brand-success-soft text-brand-success border-brand-success",
+  blue: "bg-brand-alt text-brand-muted border-brand-border",
 };
 
 export function Badge({ label, tone = "emerald" }: BadgeProps) {
@@ -117,12 +119,12 @@ export function Badge({ label, tone = "emerald" }: BadgeProps) {
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 mt-5">
+    <Text className="text-xs font-bold uppercase tracking-wider text-brand-muted mb-2 mt-5">
       {children}
     </Text>
   );
 }
 
 export function Divider() {
-  return <View className="h-px bg-slate-100 my-3" />;
+  return <View className="h-px bg-brand-alt my-3" />;
 }

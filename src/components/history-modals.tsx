@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Select } from "./Select";
 import { BOOKING_HOSPITALS } from "../lib/data";
@@ -7,6 +7,7 @@ import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { useToast } from "./ui/Toast";
 import { type ShareHospital } from "../lib/records/history-data";
+import { Text } from "./ui/Text";
 
 export function AddVisitModal({ onClose, onSaved }: { onClose: () => void; onOpenSettings?: () => void; onSaved?: () => void }) {
   const [hospitals, setHospitals] = useState<string[]>(BOOKING_HOSPITALS.map((h) => h.name));
@@ -55,20 +56,20 @@ export function AddVisitModal({ onClose, onSaved }: { onClose: () => void; onOpe
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-[#1c1c18]/60 items-center justify-center p-4">
-        <View className="bg-white rounded-3xl w-full max-w-lg p-6 border border-[#e1bfbc] max-h-[95%]">
-          <View className="flex-row items-center justify-between pb-3 border-b border-[#f6f3ed]">
-            <Text className="text-base font-bold text-[#1c1c18]">Add a past visit</Text>
+      <View className="flex-1 bg-brand-heading/50 items-center justify-center p-4">
+        <View className="bg-white rounded-3xl w-full max-w-lg p-6 border border-brand-border max-h-[95%]">
+          <View className="flex-row items-center justify-between pb-3 border-b border-brand-alt">
+            <Text className="text-base font-bold text-brand-heading">Add a past visit</Text>
             <Pressable onPress={onClose} className="p-1.5 rounded-lg">
-              <Text className="text-[#8d706e] text-lg">✕</Text>
+              <Text className="text-brand-muted text-lg">✕</Text>
             </Pressable>
           </View>
 
-          <ScrollView className="mt-4" contentContainerStyle={{ gap: 12 }}>
+          <ScrollView showsVerticalScrollIndicator={false} className="mt-4" contentContainerStyle={{ gap: 12 }}>
             <View>
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Date</Text>
-              <Pressable onPress={() => setShowDatePicker(true)} className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2">
-                <Text className="text-xs text-[#1c1c18]">{date}</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Date</Text>
+              <Pressable onPress={() => setShowDatePicker(true)} className="w-full text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2">
+                <Text className="text-xs text-brand-heading">{date}</Text>
               </Pressable>
               {showDatePicker ? (
                 <DateTimePicker
@@ -89,17 +90,17 @@ export function AddVisitModal({ onClose, onSaved }: { onClose: () => void; onOpe
             </View>
 
             <View>
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Follow-up in (days)</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Follow-up in (days)</Text>
               <TextInput
                 value={followUpDays}
                 onChangeText={setFollowUpDays}
                 keyboardType="numeric"
-                className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2 text-[#1c1c18]"
+                className="w-full text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2 text-brand-heading"
               />
             </View>
 
             <View style={{ zIndex: 1000, elevation: 1000 }}>
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Hospital / Clinic</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Hospital / Clinic</Text>
               <Select
                 value={hospital || hospitals[0]}
                 onValueChange={(v) => setHospital(v)}
@@ -108,48 +109,48 @@ export function AddVisitModal({ onClose, onSaved }: { onClose: () => void; onOpe
             </View>
 
             <View>
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Department</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Department</Text>
               <TextInput
                 value={department}
                 onChangeText={setDepartment}
-                className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2 text-[#1c1c18]"
+                className="w-full text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2 text-brand-heading"
               />
             </View>
 
             <View>
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Diagnosis</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Diagnosis</Text>
               <TextInput
                 value={diagnosis}
                 onChangeText={setDiagnosis}
-                className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2 text-[#1c1c18]"
+                className="w-full text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2 text-brand-heading"
               />
             </View>
 
             <View>
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Medicines (comma separated)</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Medicines (comma separated)</Text>
               <TextInput
                 value={medicines}
                 onChangeText={setMedicines}
-                className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2 text-[#1c1c18]"
+                className="w-full text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2 text-brand-heading"
               />
             </View>
 
             <View>
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Follow-up note</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Follow-up note</Text>
               <TextInput
                 value={note}
                 onChangeText={setNote}
                 multiline
-                className="w-full text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2 text-[#1c1c18] min-h-[80px]"
+                className="w-full text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2 text-brand-heading min-h-[80px]"
               />
             </View>
           </ScrollView>
 
-          <View className="pt-3 mt-3 border-t border-[#f6f3ed] flex-row items-center justify-end gap-3">
-            <Pressable onPress={onClose} className="px-4 py-2 rounded-xl border border-[#e1bfbc]">
-              <Text className="text-xs font-semibold text-[#59413f]">Cancel</Text>
+          <View className="pt-3 mt-3 border-t border-brand-alt flex-row items-center justify-end gap-3">
+            <Pressable onPress={onClose} className="px-4 py-2 rounded-xl border border-brand-border">
+              <Text className="text-xs font-semibold text-brand-body">Cancel</Text>
             </Pressable>
-            <Pressable onPress={handleSave} className="px-5 py-2 bg-[#423238] rounded-xl">
+            <Pressable onPress={handleSave} className="px-5 py-2 bg-brand-accent rounded-xl">
               <Text className="text-white text-xs font-bold">Save visit</Text>
             </Pressable>
           </View>
@@ -230,23 +231,23 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-[#1c1c18]/60 items-center justify-center p-4">
-        <View className="bg-white rounded-3xl w-full max-w-lg p-6 border border-[#e1bfbc] max-h-[95%]">
-          <View className="flex-row items-center justify-between pb-3 border-b border-[#f6f3ed]">
-            <Text className="text-base font-bold text-[#1c1c18]">{t("share.title")}</Text>
+      <View className="flex-1 bg-brand-heading/50 items-center justify-center p-4">
+        <View className="bg-white rounded-3xl w-full max-w-lg p-6 border border-brand-border max-h-[95%]">
+          <View className="flex-row items-center justify-between pb-3 border-b border-brand-alt">
+            <Text className="text-base font-bold text-brand-heading">{t("share.title")}</Text>
             <Pressable onPress={onClose} className="p-1.5 rounded-lg">
-              <Text className="text-[#8d706e] text-lg">✕</Text>
+              <Text className="text-brand-muted text-lg">✕</Text>
             </Pressable>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator className="mt-3" contentContainerStyle={{ minWidth: "100%" }}>
-            <ScrollView contentContainerStyle={{ gap: 12 }} style={{ maxHeight: 500, minWidth: 360 }}>
-            <Text className="text-xs text-[#59413f]">
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12 }} style={{ maxHeight: 500, minWidth: 0 }}>
+            <Text className="text-xs text-brand-body">
               Choose records to share with a partner hospital.
             </Text>
 
             <View className="flex-row items-center justify-between mt-4">
-              <Text className="text-xs font-bold text-black">choose records - {selected.size} records</Text>
+              <Text className="text-xs font-bold text-brand-heading">choose records - {selected.size} records</Text>
             </View>
 
             <View className="flex-row items-center gap-1 mt-0.5">
@@ -254,30 +255,30 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Search records..."
-                className="text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2 text-[#1c1c18]"
+                className="text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2 text-brand-heading"
                 style={{ width: 180 }}
               />
-              <Pressable onPress={selectAll} className="px-3 py-2 rounded-xl border border-[#e1bfbc]">
-                <Text className="text-xs font-semibold text-[#59413f]">Select all</Text>
+              <Pressable onPress={selectAll} className="px-3 py-2 rounded-xl border border-brand-border">
+                <Text className="text-xs font-semibold text-brand-body">Select all</Text>
               </Pressable>
-              <Pressable onPress={clearAll} className="px-3 py-2 rounded-xl border border-[#e1bfbc]">
-                <Text className="text-xs font-semibold text-[#59413f]">Clear</Text>
+              <Pressable onPress={clearAll} className="px-3 py-2 rounded-xl border border-brand-border">
+                <Text className="text-xs font-semibold text-brand-body">Clear</Text>
               </Pressable>
             </View>
 
-            <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 180 }} nestedScrollEnabled>
               {filtered.map((it: any) => (
                 <Pressable
                   key={it.id}
                   onPress={() => toggle(it.id)}
-                  className="flex-row items-start gap-3 py-2 border-b border-[#f6f3ed]"
+                  className="flex-row items-start gap-3 py-2 border-b border-brand-alt"
                 >
-                  <View className={`w-5 h-5 rounded border items-center justify-center ${selected.has(it.id) ? "bg-black border-black" : "border-[#e1bfbc]"}`}>
+                  <View className={`w-5 h-5 rounded border items-center justify-center ${selected.has(it.id) ? "bg-brand-accent border-brand-accent" : "border-brand-border"}`}>
                     {selected.has(it.id) ? <Text className="text-white text-xs">✓</Text> : null}
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-[#1c1c18]">{it.title}</Text>
-                    <Text className="text-xs text-[#59413f] mt-0.5">
+                    <Text className="text-sm font-semibold text-brand-heading">{it.title}</Text>
+                    <Text className="text-xs text-brand-body mt-0.5">
                       {it.occurred_at ? new Date(it.occurred_at).toLocaleDateString() : ""} · {it.kind === "self" ? "Self-reported" : "Verified"}
                     </Text>
                   </View>
@@ -286,29 +287,29 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
             </ScrollView>
 
             <View className="mt-4">
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">{t("share.hospital")}</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">{t("share.hospital")}</Text>
               {hospitals === null ? (
-                <Text className="text-xs text-[#59413f]">{t("common.loading")}</Text>
+                <Text className="text-xs text-brand-body">{t("common.loading")}</Text>
               ) : hospitals.length === 0 ? (
-                <Text className="text-xs text-rose-500">No partner hospitals available.</Text>
+                <Text className="text-xs text-brand-danger">No partner hospitals available.</Text>
               ) : (
-                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled className="rounded-xl border border-[#e1bfbc]">
+                <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 180 }} nestedScrollEnabled className="rounded-xl border border-brand-border">
                   {hospitals.map((h) => {
                     const active = h.hospital_id === hospitalId;
                     return (
                       <Pressable
                         key={h.hospital_id}
                         onPress={() => setHospitalId(h.hospital_id)}
-                        className={`flex-row items-center gap-3 px-3 py-2 border-b border-[#f6f3ed] ${active ? "bg-[#f6f3ed]" : ""}`}
+                        className={`flex-row items-center gap-3 px-3 py-2 border-b border-brand-alt ${active ? "bg-brand-alt" : ""}`}
                       >
-                        <View className={`w-5 h-5 rounded-full border items-center justify-center ${active ? "border-[#423238]" : "border-[#e1bfbc]"}`}>
-                          {active ? <View className="w-2.5 h-2.5 rounded-full bg-[#423238]" /> : null}
+                        <View className={`w-5 h-5 rounded-full border items-center justify-center ${active ? "border-brand-accent" : "border-brand-border"}`}>
+                          {active ? <View className="w-2.5 h-2.5 rounded-full bg-brand-accent" /> : null}
                         </View>
                         <View className="flex-1">
-                          <Text className="text-sm font-semibold text-[#1c1c18]">
+                          <Text className="text-sm font-semibold text-brand-heading">
                             {(language === "am" && h.name_am) || h.name}
                           </Text>
-                          {h.city ? <Text className="text-xs text-[#59413f]">{h.city}</Text> : null}
+                          {h.city ? <Text className="text-xs text-brand-body">{h.city}</Text> : null}
                         </View>
                       </Pressable>
                     );
@@ -317,12 +318,12 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
               )}
             </View>
 
-            {error ? <Text className="text-xs text-rose-500 mt-2">{error}</Text> : null}
+            {error ? <Text className="text-xs text-brand-danger mt-2">{error}</Text> : null}
 
             <View className="mt-4">
-              <Text className="text-xs font-bold text-[#59413f] uppercase tracking-wider mb-1.5">Share until (optional)</Text>
-              <Pressable onPress={() => setShowDate(true)} className="text-xs bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl px-3 py-2" style={{ width: 180 }}>
-                <Text className="text-xs text-[#1c1c18]">{shareUntil || "Select date"}</Text>
+              <Text className="text-xs font-bold text-brand-body uppercase tracking-wider mb-1.5">Share until (optional)</Text>
+              <Pressable onPress={() => setShowDate(true)} className="text-xs bg-brand-alt border border-brand-border rounded-xl px-3 py-2" style={{ width: 180 }}>
+                <Text className="text-xs text-brand-heading">{shareUntil || "Select date"}</Text>
               </Pressable>
               {showDate ? (
                 <DateTimePicker
@@ -344,11 +345,11 @@ export function ShareModal({ items, onClose, onShared }: { items?: any; onClose:
           </ScrollView>
           </ScrollView>
 
-          <View className="pt-3 mt-3 border-t border-[#f6f3ed] flex-row items-center justify-end gap-3">
-            <Pressable onPress={onClose} className="px-4 py-2 rounded-xl border border-[#e1bfbc]">
-              <Text className="text-xs font-semibold text-[#59413f]">Cancel</Text>
+          <View className="pt-3 mt-3 border-t border-brand-alt flex-row items-center justify-end gap-3">
+            <Pressable onPress={onClose} className="px-4 py-2 rounded-xl border border-brand-border">
+              <Text className="text-xs font-semibold text-brand-body">Cancel</Text>
             </Pressable>
-            <Pressable onPress={handleShare} className="px-5 py-2 bg-[#423238] rounded-xl">
+            <Pressable onPress={handleShare} className="px-5 py-2 bg-brand-accent rounded-xl">
               <Text className="text-white text-xs font-bold">Share</Text>
             </Pressable>
           </View>

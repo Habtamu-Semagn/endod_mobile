@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Text } from "../components/ui/Text";
 import {
   Image,
   Keyboard,
@@ -6,7 +7,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
@@ -56,15 +56,16 @@ export default function SignupScreen() {
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        enabled
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={Platform.OS === "ios"}
+        behavior="padding"
         keyboardVerticalOffset={0}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: keyboardVisible ? -60 : 0 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: Platform.OS === "ios" && keyboardVisible ? -60 : 0 }}
           keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           className="px-6 py-8"
         >
           <View className="items-center mb-7">
@@ -95,7 +96,7 @@ export default function SignupScreen() {
             >
               <View
                 className={`w-5 h-5 rounded-md border-2 items-center justify-center mt-0.5 ${
-                  agree ? "bg-emerald-600 border-emerald-600" : "border-slate-300 bg-white"
+                  agree ? "bg-brand-primary border-brand-primary" : "border-brand-border bg-white"
                 }`}
               >
                 {agree ? <Text className="text-white text-xs font-bold">✓</Text> : null}
@@ -113,7 +114,7 @@ export default function SignupScreen() {
               </Text>
             </Pressable>
 
-            {error ? <Text className="text-xs text-rose-500 mb-3 -mt-1">{error}</Text> : null}
+            {error ? <Text className="text-xs text-brand-danger mb-3 -mt-1">{error}</Text> : null}
 
             <Button title="Send Code" variant="dark" size="lg" loading={submitting} onPress={handleSubmit} />
           </View>

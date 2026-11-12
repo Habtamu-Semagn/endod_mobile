@@ -6,6 +6,7 @@
  */
 
 import QRCode from "qrcode";
+import { COLORS } from "../theme";
 
 /** A 2-D boolean matrix where `true` means the module is dark (filled). */
 export type QRModule = boolean[][];
@@ -68,6 +69,6 @@ export function qrMatrixToSvg(matrix: QRModule, _size: number = 152): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${grid} ${grid}" ` +
     `preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges" ` +
-    `width="100%" height="100%" style="display:block" fill="#000">${shapes.join("")}</svg>`
+    `width="100%" height="100%" style="display:block" fill="${COLORS.black}">${shapes.join("")}</svg>`
   );
 }

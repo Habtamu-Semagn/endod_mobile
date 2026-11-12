@@ -1,7 +1,7 @@
+import { COLORS, TAB_CONTENT_PADDING } from "../../lib/theme";
 import { useCallback, useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View, Alert } from "react-native";
+import { Modal, Pressable, ScrollView, Switch, TextInput, View, Alert } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useSession } from "../../lib/session";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -12,6 +12,7 @@ import { Select } from "../../components/Select";
 import { Passkey } from "react-native-passkey";
 import { PasskeyModal } from "../../components/PasskeyModal";
 import { ConfirmModal } from "../../components/ConfirmModal";
+import { Text } from "../../components/ui/Text";
 import {
   BLOOD_TYPES, formatPhoneDisplay, invalidateHealthCard, splitAllergies, type ProfileForCard,
 } from "../../lib/health-card/health-card-data";
@@ -86,7 +87,7 @@ const STRENGTH_LABEL_KEYS: TranslationKey[] = [
   "settings.password.strength.good",
   "settings.password.strength.strong",
 ];
-const STRENGTH_COLORS = ["text-[#8d706e]", "text-[#ba1a1a]", "text-[#8d706e]", "text-[#1c1c18]", "text-[#1c1c18]"];
+const STRENGTH_COLORS = ["text-brand-muted", "text-brand-danger", "text-brand-muted", "text-brand-heading", "text-brand-heading"];
 
 export default function SettingsScreen({ onToast = (title: string, message?: string) => Alert.alert(title, message), onProfileChange = () => {}, hideTitle }: Props) {
   const { t } = useI18n();
@@ -526,12 +527,12 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
 
   if (!profile) {
     return (
-      <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-          {loadError ? <Text className="text-sm text-[#ba1a1a]">{loadError}</Text> : (
+      <View className="flex-1 bg-brand-bg">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }} keyboardShouldPersistTaps="handled">
+          {loadError ? <Text className="text-sm text-brand-danger">{loadError}</Text> : (
             <Skeleton className="gap-6" label={t("settings.loading")}>
               {[3, 2, 2].map((fields, section) => (
-                <View key={section} className="bg-white rounded-2xl border border-[#e1bfbc] p-5 gap-5">
+                <View key={section} className="bg-white rounded-2xl border border-brand-border p-5 gap-5">
                   <Bone className="h-4 w-40 rounded" />
                   <View className="gap-5">
                     {Array.from({ length: fields }, (_, i) => <FieldBones key={i} />)}
@@ -541,7 +542,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
             </Skeleton>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -554,130 +555,130 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
   const hasConsent = profile?.consent?.treatment_processing ?? false;
 
   const toggle = (id: string, checked: boolean, onChange: (value: boolean) => void, label: string, hint: string) => (
-    <View key={id} className="flex-row items-start justify-between gap-4 py-3 border-b border-[#f6f3ed] last:border-0">
+    <View key={id} className="flex-row items-start justify-between gap-4 py-3 border-b border-brand-alt last:border-0">
       <View className="flex-1">
-        <Text className="text-sm font-semibold text-[#1c1c18]">{label}</Text>
-        <Text className="text-xs text-[#59413f]">{hint}</Text>
+        <Text className="text-sm font-semibold text-brand-heading">{label}</Text>
+        <Text className="text-xs text-brand-body">{hint}</Text>
       </View>
-      <Switch value={checked} onValueChange={onChange} disabled={busy !== null} trackColor={{ true: "#1c1c18", false: "#e1bfbc" }} thumbColor="#ffffff" />
+      <Switch value={checked} onValueChange={onChange} disabled={busy !== null} trackColor={{ true: COLORS.heading, false: COLORS.border }} thumbColor={COLORS.surface} />
     </View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+    <View className="flex-1 bg-brand-bg">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }} keyboardShouldPersistTaps="handled">
         <View className="gap-6 py-6">
-          <View className="bg-white rounded-2xl border border-[#e1bfbc] p-5 gap-6">
-            <View className="flex-col gap-2 border-b border-[#f6f3ed] pb-4">
-              <Text className="text-lg font-bold text-[#1c1c18]">{t("settings.personal.title")}</Text>
-              <Text className="text-xs text-[#59413f]">{t("settings.personal.subtitle")}</Text>
-              <Text className="self-start px-3 py-1 bg-[#f6f3ed] text-[#1c1c18] text-xs font-semibold rounded-full border border-[#e1bfbc]">{profile?.dedan_user_id ?? ""}</Text>
+          <View className="bg-white rounded-2xl border border-brand-border p-5 gap-6">
+            <View className="flex-col gap-2 border-b border-brand-alt pb-4">
+              <Text className="text-lg font-bold text-brand-heading">{t("settings.personal.title")}</Text>
+              <Text className="text-xs text-brand-body">{t("settings.personal.subtitle")}</Text>
+              <Text className="self-start px-3 py-1 bg-brand-alt text-brand-heading text-xs font-semibold rounded-full border border-brand-border">{profile?.dedan_user_id ?? ""}</Text>
             </View>
             <View className="gap-5">
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.personal.firstName")}</Text>
-                <TextInput value={firstName} onChangeText={setFirstName} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.personal.firstName")}</Text>
+                <TextInput value={firstName} onChangeText={setFirstName} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.personal.middleName")}</Text>
-                <TextInput value={middleName} onChangeText={setMiddleName} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.personal.middleName")}</Text>
+                <TextInput value={middleName} onChangeText={setMiddleName} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.personal.lastName")}</Text>
-                <TextInput value={lastName} onChangeText={setLastName} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.personal.lastName")}</Text>
+                <TextInput value={lastName} onChangeText={setLastName} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.personal.email")}</Text>
-                <TextInput value={email} onChangeText={setEmail} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.personal.email")}</Text>
+                <TextInput value={email} onChangeText={setEmail} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.personal.phone")}</Text>
-                <TextInput editable={false} value={profile?.phone ? formatPhoneDisplay(profile.phone) : ""} className="w-full text-sm rounded-xl bg-[#f6f3ed] border border-[#e1bfbc] py-2.5 px-3.5 text-[#59413f]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.personal.phone")}</Text>
+                <TextInput editable={false} value={profile?.phone ? formatPhoneDisplay(profile.phone) : ""} className="w-full text-sm rounded-xl bg-brand-alt border border-brand-border py-2.5 px-3.5 text-brand-body" />
                 {phoneStep === "idle" && (
                   <Pressable onPress={() => { setPhoneStep("number"); setNewPhone(""); setPhoneError(""); }} className="mt-1.5">
-                    <Text className="text-[11px] font-semibold text-[#1c1c18]">{profile?.phone ? (profile?.phone_verified ? t("settings.personal.changeNumber") : t("settings.personal.verifyNumber")) : t("settings.personal.addPhone")}</Text>
+                    <Text className="text-[11px] font-semibold text-brand-heading">{profile?.phone ? (profile?.phone_verified ? t("settings.personal.changeNumber") : t("settings.personal.verifyNumber")) : t("settings.personal.addPhone")}</Text>
                   </Pressable>
                 )}
                 {phoneStep !== "idle" && (
-                  <View className="bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl p-4 mt-3 gap-3">
-                    <Text className="text-xs text-[#59413f]">{t("settings.personal.phoneHint")}</Text>
+                  <View className="bg-brand-alt border border-brand-border rounded-xl p-4 mt-3 gap-3">
+                    <Text className="text-xs text-brand-body">{t("settings.personal.phoneHint")}</Text>
                     {phoneStep === "number" ? (
                       <View className="flex-row gap-2">
-                        <TextInput value={newPhone} onChangeText={setNewPhone} placeholder="09XXXXXXXX" className="flex-1 text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
-                        <Pressable onPress={() => void sendPhoneCode()} disabled={busy !== null || !newPhone.trim()} className="px-4 py-2.5 bg-[#423238] rounded-xl">
+                        <TextInput value={newPhone} onChangeText={setNewPhone} placeholder="09XXXXXXXX" className="flex-1 text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
+                        <Pressable onPress={() => void sendPhoneCode()} disabled={busy !== null || !newPhone.trim()} className="px-4 py-2.5 bg-brand-accent rounded-xl">
                           <Text className="text-white font-semibold text-xs">{t("settings.personal.sendCode")}</Text>
                         </Pressable>
                       </View>
                     ) : (
                       <View className="flex-row gap-2">
-                        <TextInput value={phoneCode} onChangeText={(v) => setPhoneCode(v.replace(/\D/g, ""))} placeholder={t("settings.personal.codePlaceholder")} keyboardType="numeric" maxLength={6} className="flex-1 text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
-                        <Pressable onPress={() => void confirmPhone()} disabled={busy !== null || phoneCode.length !== 6} className="px-4 py-2.5 bg-[#423238] rounded-xl">
+                        <TextInput value={phoneCode} onChangeText={(v) => setPhoneCode(v.replace(/\D/g, ""))} placeholder={t("settings.personal.codePlaceholder")} keyboardType="numeric" maxLength={6} className="flex-1 text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
+                        <Pressable onPress={() => void confirmPhone()} disabled={busy !== null || phoneCode.length !== 6} className="px-4 py-2.5 bg-brand-accent rounded-xl">
                           <Text className="text-white font-semibold text-xs">{t("common.confirm")}</Text>
                         </Pressable>
                       </View>
                     )}
-                    {phoneError ? <Text className="text-xs text-[#ba1a1a]">{phoneError}</Text> : null}
+                    {phoneError ? <Text className="text-xs text-brand-danger">{phoneError}</Text> : null}
                     <Pressable onPress={() => setPhoneStep("idle")}>
-                      <Text className="text-[11px] text-[#59413f]">{t("common.cancel")}</Text>
+                      <Text className="text-[11px] text-brand-body">{t("common.cancel")}</Text>
                     </Pressable>
                   </View>
                 )}
               </View>
             </View>
-            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#f6f3ed]">
-              <Pressable onPress={saveProfile} disabled={busy !== null} className="px-5 py-2.5 bg-[#423238] rounded-xl">
+            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-brand-alt">
+              <Pressable onPress={saveProfile} disabled={busy !== null} className="px-5 py-2.5 bg-brand-accent rounded-xl">
                 <Text className="text-white font-semibold text-sm">{t("settings.personal.saveChanges")}</Text>
               </Pressable>
             </View>
           </View>
 
           {/* Location */}
-          <View className="bg-white rounded-2xl border border-[#e1bfbc] p-5 gap-6">
-            <View className="border-b border-[#f6f3ed] pb-4">
-              <Text className="text-lg font-bold text-[#1c1c18]">{t("settings.location.title")}</Text>
+          <View className="bg-white rounded-2xl border border-brand-border p-5 gap-6">
+            <View className="border-b border-brand-alt pb-4">
+              <Text className="text-lg font-bold text-brand-heading">{t("settings.location.title")}</Text>
             </View>
             <View className="gap-5" style={{ zIndex: 10 }}>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.location.address")}</Text>
-                <TextInput value={address} onChangeText={setAddress} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.location.address")}</Text>
+                <TextInput value={address} onChangeText={setAddress} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.location.city")}</Text>
-                <TextInput value={city} onChangeText={setCity} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.location.city")}</Text>
+                <TextInput value={city} onChangeText={setCity} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.location.region")}</Text>
-                <TextInput value={region} onChangeText={setRegion} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.location.region")}</Text>
+                <TextInput value={region} onChangeText={setRegion} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.location.postalCode")}</Text>
-                <TextInput value={postalCode} onChangeText={setPostalCode} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.location.postalCode")}</Text>
+                <TextInput value={postalCode} onChangeText={setPostalCode} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View style={{ zIndex: 9999, elevation: 9999 }}>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.location.country")}</Text>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.location.country")}</Text>
                 <Select value={COUNTRIES.find((c) => c.value === country)?.labelKey ? t(COUNTRIES.find((c) => c.value === country)!.labelKey) : country} onValueChange={(v) => { const c = COUNTRIES.find((x) => t(x.labelKey) === v); if (c) setCountry(c.value); }} options={COUNTRIES.map((c) => t(c.labelKey))} className="w-full" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.location.radius")}</Text>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.location.radius")}</Text>
                 <View className="flex-row items-center gap-2">
-                  <TextInput value={String(radius)} onChangeText={(v) => { const n = Number(v); if (!isNaN(n)) setRadius(Math.min(RADIUS_MAX_KM, Math.max(RADIUS_MIN_KM, n))); }} keyboardType="numeric" className="flex-1 text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
-                  <Text className="text-xs text-[#59413f]">km</Text>
+                  <TextInput value={String(radius)} onChangeText={(v) => { const n = Number(v); if (!isNaN(n)) setRadius(Math.min(RADIUS_MAX_KM, Math.max(RADIUS_MIN_KM, n))); }} keyboardType="numeric" className="flex-1 text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
+                  <Text className="text-xs text-brand-body">km</Text>
                 </View>
-                <Text className="text-[11px] text-[#8d706e] mt-1 text-left">{t("settings.location.within", { km: RADIUS_MIN_KM })} – {t("settings.location.within", { km: RADIUS_MAX_KM })}</Text>
+                <Text className="text-[11px] text-brand-muted mt-1 text-left">{t("settings.location.within", { km: RADIUS_MIN_KM })} – {t("settings.location.within", { km: RADIUS_MAX_KM })}</Text>
               </View>
             </View>
-            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#f6f3ed]">
-              <Pressable onPress={saveLocation} disabled={busy !== null} className="px-5 py-2.5 bg-[#423238] rounded-xl">
+            <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-brand-alt">
+              <Pressable onPress={saveLocation} disabled={busy !== null} className="px-5 py-2.5 bg-brand-accent rounded-xl">
                 <Text className="text-white font-semibold text-sm">{t("settings.location.update")}</Text>
               </Pressable>
             </View>
           </View>
 
           {/* Privacy */}
-          <View className="bg-white rounded-2xl border border-[#e1bfbc] p-5">
-            <View className="border-b border-[#f6f3ed] pb-4 mb-2">
-              <Text className="text-lg font-bold text-[#1c1c18]">{t("settings.privacy.title")}</Text>
-              <Text className="text-xs text-[#59413f]">{t("settings.privacy.subtitle")}</Text>
+          <View className="bg-white rounded-2xl border border-brand-border p-5">
+            <View className="border-b border-brand-alt pb-4 mb-2">
+              <Text className="text-lg font-bold text-brand-heading">{t("settings.privacy.title")}</Text>
+              <Text className="text-xs text-brand-body">{t("settings.privacy.subtitle")}</Text>
             </View>
             {toggle("consent-health", profile?.consent?.treatment_processing ?? false, (v) => void setConsent("treatment_processing", v),
               t("settings.privacy.consentHealth.label"), t("settings.privacy.consentHealth.hint"))}
@@ -688,77 +689,77 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
           </View>
 
           {/* Password */}
-          <View className="bg-white rounded-2xl border border-[#e1bfbc] p-5 gap-6">
-            <View className="border-b border-[#f6f3ed] pb-4">
-              <Text className="text-lg font-bold text-[#1c1c18]">{t("settings.password.title")}</Text>
-              <Text className="text-xs text-[#59413f]">{t("settings.password.subtitle")}</Text>
+          <View className="bg-white rounded-2xl border border-brand-border p-5 gap-6">
+            <View className="border-b border-brand-alt pb-4">
+              <Text className="text-lg font-bold text-brand-heading">{t("settings.password.title")}</Text>
+              <Text className="text-xs text-brand-body">{t("settings.password.subtitle")}</Text>
             </View>
             <View className="gap-5">
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.password.current")}</Text>
-                <TextInput secureTextEntry={!showPasswords} value={currentPassword} onChangeText={setCurrentPassword} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.password.current")}</Text>
+                <TextInput secureTextEntry={!showPasswords} value={currentPassword} onChangeText={setCurrentPassword} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.password.new")}</Text>
-                <TextInput secureTextEntry={!showPasswords} value={newPassword} onChangeText={setNewPassword} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.password.new")}</Text>
+                <TextInput secureTextEntry={!showPasswords} value={newPassword} onChangeText={setNewPassword} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.password.confirm")}</Text>
-                <TextInput secureTextEntry={!showPasswords} value={confirmPassword} onChangeText={setConfirmPassword} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.password.confirm")}</Text>
+                <TextInput secureTextEntry={!showPasswords} value={confirmPassword} onChangeText={setConfirmPassword} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
             </View>
-            <View className="p-3.5 bg-[#f6f3ed] rounded-xl border border-[#e1bfbc] gap-2">
+            <View className="p-3.5 bg-brand-alt rounded-xl border border-brand-border gap-2">
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-[#59413f]">{t("settings.password.strength")}</Text>
+                <Text className="text-xs text-brand-body">{t("settings.password.strength")}</Text>
                 <Text className="text-xs font-semibold">{t(STRENGTH_LABEL_KEYS[strength(newPassword)])}</Text>
               </View>
               {requirements.map((req) => (
                 <View key={req.id} className="flex-row items-center gap-1.5">
-                  <Text className={`text-xs ${req.met ? "text-[#1c1c18]" : "text-[#8d706e]"}`}>{req.met ? "✓" : "•"}</Text>
-                  <Text className={`text-xs ${req.met ? "text-[#1c1c18]" : "text-[#8d706e]"}`}>{req.label}</Text>
+                  <Text className={`text-xs ${req.met ? "text-brand-heading" : "text-brand-muted"}`}>{req.met ? "✓" : "•"}</Text>
+                  <Text className={`text-xs ${req.met ? "text-brand-heading" : "text-brand-muted"}`}>{req.label}</Text>
                 </View>
               ))}
             </View>
-            <View className="flex-row items-center justify-between gap-3 pt-3 border-t border-[#f6f3ed]">
+            <View className="flex-row items-center justify-between gap-3 pt-3 border-t border-brand-alt">
               <Pressable onPress={() => setShowPasswords(!showPasswords)} className="flex-row items-center gap-2">
-                <View className={`w-4 h-4 rounded border ${showPasswords ? "bg-[#423238] border-[#423238]" : "border-[#e1bfbc]"}`} />
-                <Text className="text-xs text-[#59413f]">{t("settings.password.show")}</Text>
+                <View className={`w-4 h-4 rounded border ${showPasswords ? "bg-brand-accent border-brand-accent" : "border-brand-border"}`} />
+                <Text className="text-xs text-brand-body">{t("settings.password.show")}</Text>
               </Pressable>
-              <Pressable onPress={changePassword} disabled={busy !== null} className="px-5 py-2.5 bg-[#423238] rounded-xl">
+              <Pressable onPress={changePassword} disabled={busy !== null} className="px-5 py-2.5 bg-brand-accent rounded-xl">
                 <Text className="text-white font-semibold text-sm">{t("settings.password.update")}</Text>
               </Pressable>
             </View>
           </View>
 
           {/* Digital health card */}
-          <View className="bg-white rounded-2xl border border-[#e1bfbc] p-5 gap-6">
-            <View className="flex-col gap-3 border-b border-[#f6f3ed] pb-4">
+          <View className="bg-white rounded-2xl border border-brand-border p-5 gap-6">
+            <View className="flex-col gap-3 border-b border-brand-alt pb-4">
               <View>
-                <Text className="text-lg font-bold text-[#1c1c18]">{t("settings.card.title")}</Text>
+                <Text className="text-lg font-bold text-brand-heading">{t("settings.card.title")}</Text>
               </View>
               <View className="flex-row gap-2">
-                <Pressable onPress={() => setCardVisible(!cardVisible)} className="px-3.5 py-1.5 rounded-lg bg-[#f6f3ed] border border-[#e1bfbc]">
-                  <Text className="text-xs font-semibold text-[#1c1c18]">{cardVisible ? t("settings.card.hidePreview") : t("settings.card.showPreview")}</Text>
+                <Pressable onPress={() => setCardVisible(!cardVisible)} className="px-3.5 py-1.5 rounded-lg bg-brand-alt border border-brand-border">
+                  <Text className="text-xs font-semibold text-brand-heading">{cardVisible ? t("settings.card.hidePreview") : t("settings.card.showPreview")}</Text>
                 </Pressable>
-                <Pressable onPress={() => router.push("/(tabs)/card" as any)} className="px-3.5 py-1.5 rounded-lg bg-[#423238]">
+                <Pressable onPress={() => router.push("/(tabs)/card" as any)} className="px-3.5 py-1.5 rounded-lg bg-brand-accent">
                   <Text className="text-white text-xs font-semibold">{t("settings.card.open")}</Text>
                 </Pressable>
               </View>
             </View>
             {cardVisible && (
-              <View className="bg-gradient-to-br from-[#423238] to-[#2b1f22] rounded-2xl p-4">
+              <View className="bg-gradient-to-br from-brand-accent to-brand-accent-deep rounded-2xl p-4">
                 <View className="flex-row items-start justify-between gap-3 mb-3">
                   <View className="flex-1 min-w-0">
                     <View className="flex-row items-center gap-2">
                       <Text className="text-lg font-extrabold text-white">Endod</Text>
                     </View>
-                    <Text className="text-[8px] font-semibold text-[#f6f3ed] uppercase tracking-widest mt-1">
+                    <Text className="text-[11px] font-semibold text-brand-alt uppercase tracking-widest mt-1">
                       {t("healthCard.digitalId")}
                     </Text>
                     <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>
                       {[firstName, lastName].filter(Boolean).join(" ") || "—"}
                     </Text>
-                    <Text className="text-[9px] font-semibold text-[#f6f3ed] mt-0.5" numberOfLines={1}>
+                    <Text className="text-[11px] font-semibold text-brand-alt mt-0.5" numberOfLines={1}>
                       {profile?.dedan_user_id ?? ""}
                     </Text>
                   </View>
@@ -767,26 +768,26 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
                   <View className="flex-1" style={{ gap: 4 }}>
                     <View className="flex-row" style={{ gap: 12 }}>
                       <View className="flex-1">
-                        <Text className="text-[7px] font-semibold text-[#8d706e] uppercase tracking-wider">{t("settings.card.phone")}</Text>
-                        <Text className="text-[9px] font-semibold text-white mt-0.5" numberOfLines={1}>{profile?.phone ? formatPhoneDisplay(profile.phone) : "—"}</Text>
+                        <Text className="text-[11px] font-semibold text-brand-muted uppercase tracking-wider">{t("settings.card.phone")}</Text>
+                        <Text className="text-[11px] font-semibold text-white mt-0.5" numberOfLines={1}>{profile?.phone ? formatPhoneDisplay(profile.phone) : "—"}</Text>
                       </View>
                       <View className="flex-1">
-                        <Text className="text-[7px] font-semibold text-[#8d706e] uppercase tracking-wider">{t("settings.card.age")}</Text>
-                        <Text className="text-[9px] font-semibold text-white mt-0.5">{dateOfBirth ? (() => { const b=new Date(dateOfBirth); const n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--; return a; })() : "—"}</Text>
+                        <Text className="text-[11px] font-semibold text-brand-muted uppercase tracking-wider">{t("settings.card.age")}</Text>
+                        <Text className="text-[11px] font-semibold text-white mt-0.5">{dateOfBirth ? (() => { const b=new Date(dateOfBirth); const n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--; return a; })() : "—"}</Text>
                       </View>
                     </View>
                     <View>
-                      <Text className="text-[7px] font-semibold text-[#8d706e] uppercase tracking-wider">{t("settings.card.address")}</Text>
-                      <Text className="text-[9px] font-semibold text-white mt-0.5" numberOfLines={2}>{address || "—"}</Text>
+                      <Text className="text-[11px] font-semibold text-brand-muted uppercase tracking-wider">{t("settings.card.address")}</Text>
+                      <Text className="text-[11px] font-semibold text-white mt-0.5" numberOfLines={2}>{address || "—"}</Text>
                     </View>
                     <View className="flex-row" style={{ gap: 12 }}>
                       <View className="flex-1">
-                        <Text className="text-[7px] font-semibold text-[#8d706e] uppercase tracking-wider">{t("settings.card.emergency")}</Text>
-                        <Text className="text-[9px] font-medium text-white/75 mt-0.5" numberOfLines={1}>{emergencyName || "—"}</Text>
+                        <Text className="text-[11px] font-semibold text-brand-muted uppercase tracking-wider">{t("settings.card.emergency")}</Text>
+                        <Text className="text-[11px] font-medium text-white/75 mt-0.5" numberOfLines={1}>{emergencyName || "—"}</Text>
                       </View>
                       <View className="flex-1">
-                        <Text className="text-[7px] font-semibold text-[#8d706e] uppercase tracking-wider">{t("healthCard.expires")}</Text>
-                        <Text className="text-[9px] font-semibold text-[#f6f3ed] mt-0.5">Oct 2027</Text>
+                        <Text className="text-[11px] font-semibold text-brand-muted uppercase tracking-wider">{t("healthCard.expires")}</Text>
+                        <Text className="text-[11px] font-semibold text-brand-alt mt-0.5">Oct 2027</Text>
                       </View>
                     </View>
                   </View>
@@ -797,12 +798,12 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
               </View>
             )}
             {!hasConsent && (
-              <Text className="text-xs text-[#59413f] bg-[#f6f3ed] border border-[#e1bfbc] rounded-xl p-3">{t("settings.card.needsConsent")}</Text>
+              <Text className="text-xs text-brand-body bg-brand-alt border border-brand-border rounded-xl p-3">{t("settings.card.needsConsent")}</Text>
             )}
             <View className="gap-5">
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.card.dateOfBirth")}</Text>
-                <Pressable onPress={() => setShowDob(true)} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.card.dateOfBirth")}</Text>
+                <Pressable onPress={() => setShowDob(true)} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading">
                   <Text>{dateOfBirth || "YYYY-MM-DD"}</Text>
                 </Pressable>
                 {showDob && (
@@ -818,19 +819,19 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
                 )}
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.card.addressLabel")}</Text>
-                <TextInput value={address} onChangeText={setAddress} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.card.addressLabel")}</Text>
+                <TextInput value={address} onChangeText={setAddress} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.card.emergencyName")}</Text>
-                <TextInput value={emergencyName} onChangeText={setEmergencyName} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.card.emergencyName")}</Text>
+                <TextInput value={emergencyName} onChangeText={setEmergencyName} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-[#59413f] mb-1.5">{t("settings.card.emergencyPhone")}</Text>
-                <TextInput value={emergencyPhone} onChangeText={setEmergencyPhone} className="w-full text-sm rounded-xl border border-[#e1bfbc] py-2.5 px-3.5 text-[#1c1c18]" />
+                <Text className="text-xs font-semibold uppercase tracking-wider text-brand-body mb-1.5">{t("settings.card.emergencyPhone")}</Text>
+                <TextInput value={emergencyPhone} onChangeText={setEmergencyPhone} className="w-full text-sm rounded-xl border border-brand-border py-2.5 px-3.5 text-brand-heading" />
               </View>
-              <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-[#f6f3ed]">
-                <Pressable onPress={() => void saveCard()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} className="px-5 py-2.5 bg-[#423238] rounded-xl">
+              <View className="flex-row items-center justify-end gap-3 pt-3 border-t border-brand-alt">
+                <Pressable onPress={() => void saveCard()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} className="px-5 py-2.5 bg-brand-accent rounded-xl">
                   <Text className="text-white font-semibold text-sm">{t("settings.card.save")}</Text>
                 </Pressable>
               </View>
@@ -839,31 +840,31 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
         </View>
 
         {/* Passkeys */}
-        <View className="bg-white rounded-2xl border border-[#e1bfbc] p-4 mt-4">
-          <Text className="text-sm font-bold text-[#1c1c18] mb-3">Passkeys</Text>
+        <View className="bg-white rounded-2xl border border-brand-border p-4 mt-4">
+          <Text className="text-sm font-bold text-brand-heading mb-3">Passkeys</Text>
           {passkeys.length === 0 ? (
-            <Text className="text-xs text-[#59413f] mb-3">No passkeys on this account yet.</Text>
+            <Text className="text-xs text-brand-body mb-3">No passkeys on this account yet.</Text>
           ) : (
             <View className="gap-2 mb-3">
               {passkeys.map((p: any) => (
-                <View key={p.id} className="flex-row items-center justify-between py-2 border-b border-[#f6f3ed]">
+                <View key={p.id} className="flex-row items-center justify-between py-2 border-b border-brand-alt">
                   <View className="flex-1 min-w-0">
-                    <Text className="text-sm font-semibold text-[#1c1c18]" numberOfLines={1}>{p.name}</Text>
-                    <Text className="text-xs text-[#8d706e]">{p.blocked ? "Blocked" : "Active"}</Text>
+                    <Text className="text-sm font-semibold text-brand-heading" numberOfLines={1}>{p.name}</Text>
+                    <Text className="text-xs text-brand-muted">{p.blocked ? "Blocked" : "Active"}</Text>
                   </View>
-                  <Pressable onPress={() => deletePasskey(p.id)} disabled={passkeyBusy} className="px-3 py-1.5 rounded-lg border border-rose-200">
-                    <Text className="text-xs font-semibold text-rose-700">Remove</Text>
+                  <Pressable onPress={() => deletePasskey(p.id)} disabled={passkeyBusy} className="px-3 py-1.5 rounded-lg border border-brand-danger">
+                    <Text className="text-xs font-semibold text-brand-danger">Remove</Text>
                   </Pressable>
                 </View>
               ))}
             </View>
           )}
           {Passkey.isSupported() ? (
-            <Pressable onPress={() => setPasskeyModalVisible(true)} disabled={passkeyBusy} className="w-full py-2.5 rounded-xl bg-[#423238] items-center">
+            <Pressable onPress={() => setPasskeyModalVisible(true)} disabled={passkeyBusy} className="w-full py-2.5 rounded-xl bg-brand-accent items-center">
               <Text className="text-sm font-semibold text-white">{passkeyBusy ? "Working…" : "Add passkey"}</Text>
             </Pressable>
           ) : (
-            <Text className="text-xs text-[#8d706e]">This device doesn&apos;t support passkeys.</Text>
+            <Text className="text-xs text-brand-muted">This device doesn&apos;t support passkeys.</Text>
           )}
         </View>
 
@@ -871,9 +872,9 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
         <View className="mt-2">
           <Pressable
             onPress={() => { signOut(); router.replace("/login"); }}
-            className="w-full py-3 rounded-xl border border-[#e1bfbc] bg-white items-center"
+            className="w-full py-3 rounded-xl border border-brand-border bg-white items-center"
           >
-            <Text className="text-sm font-semibold text-[#ba1a1a]">Sign out</Text>
+            <Text className="text-sm font-semibold text-brand-danger">Sign out</Text>
           </Pressable>
         </View>
               {/* Delete account */}
@@ -881,11 +882,11 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
           <Pressable
             onPress={deleteUserData}
             disabled={busy !== null}
-            className="w-full py-3 rounded-xl border border-rose-200 bg-white items-center"
+            className="w-full py-3 rounded-xl border border-brand-danger bg-white items-center"
           >
-            <Text className="text-sm font-semibold text-rose-700">Delete account</Text>
+            <Text className="text-sm font-semibold text-brand-danger">Delete account</Text>
           </Pressable>
-          <Text className="text-xs text-[#8d706e] mt-2 text-center">
+          <Text className="text-xs text-brand-muted mt-2 text-center">
             Permanently deletes your account. You can restore it within 30 days.
           </Text>
         </View>
@@ -904,40 +905,40 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
         animationType="fade"
         onRequestClose={() => { if (!deleteAccountBusy) setDeleteAccountVisible(false); }}
       >
-        <View style={{ flex: 1, backgroundColor: "rgba(28,28,24,0.45)", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <View style={{ width: "100%", maxWidth: 360, backgroundColor: "#FCF9F3", borderRadius: 20, padding: 20 }}>
-            <Text style={{ fontSize: 17, fontWeight: "700", color: "#1C1C18", marginBottom: 8 }}>Delete account</Text>
-            <Text style={{ fontSize: 14, lineHeight: 20, color: "#59413F", marginBottom: 12 }}>
-              Type "DELETE" to confirm, then enter your current password.
+        <View style={{ flex: 1, backgroundColor: COLORS.overlay, alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <View style={{ width: "100%", maxWidth: 360, backgroundColor: COLORS.surface, borderRadius: 20, padding: 20 }}>
+            <Text style={{ fontSize: 17, fontWeight: "700", color: COLORS.heading, marginBottom: 8 }}>Delete account</Text>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: COLORS.body, marginBottom: 12 }}>
+              Type &quot;DELETE&quot; to confirm, then enter your current password.
             </Text>
             <TextInput
               value={deleteAccountConfirm}
               onChangeText={setDeleteAccountConfirm}
               placeholder='Type "DELETE"'
               autoCapitalize="characters"
-              style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E1BFBC", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 }}
+              style={{ backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 }}
             />
             <TextInput
               value={deleteAccountPassword}
               onChangeText={setDeleteAccountPassword}
               placeholder="Current password"
               secureTextEntry
-              style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E1BFBC", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16 }}
+              style={{ backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16 }}
             />
             <View style={{ flexDirection: "row", gap: 12 }}>
               <Pressable
                 onPress={() => { if (!deleteAccountBusy) setDeleteAccountVisible(false); }}
                 disabled={deleteAccountBusy}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E1BFBC", alignItems: "center", opacity: deleteAccountBusy ? 0.5 : 1 }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", opacity: deleteAccountBusy ? 0.5 : 1 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#59413F" }}>Cancel</Text>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.body }}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={confirmDeleteAccount}
                 disabled={deleteAccountBusy}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#AD292F", alignItems: "center", opacity: deleteAccountBusy ? 0.5 : 1 }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: "center", opacity: deleteAccountBusy ? 0.5 : 1 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.surface }}>
                   {deleteAccountBusy ? "Working…" : "Delete"}
                 </Text>
               </Pressable>
@@ -945,6 +946,6 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
           </View>
         </View>
       </Modal>
-</SafeAreaView>
+</View>
   );
 }

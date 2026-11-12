@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { Text } from "../components/ui/Text";
 import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -15,9 +15,10 @@ import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
 import { api, setAuthToken } from "../lib/api";
+import { COLORS } from "../lib/theme";
 
 const STRENGTH_LABELS = ["Too short", "Weak", "Fair", "Strong", "Very strong"];
-const STRENGTH_BAR_COLORS = ["bg-slate-200", "bg-rose-400", "bg-amber-400", "bg-emerald-500", "bg-emerald-600"];
+const STRENGTH_BAR_COLORS = ["bg-brand-alt", "bg-brand-danger-soft", "bg-brand-accent", "bg-brand-primary", "bg-brand-primary"];
 
 export default function SetPasswordScreen() {
   const router = useRouter();
@@ -102,19 +103,20 @@ export default function SetPasswordScreen() {
   return (
     <SafeAreaView className="flex-1 bg-brand-bg">
       <KeyboardAvoidingView
-        enabled
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={Platform.OS === "ios"}
+        behavior="padding"
         keyboardVerticalOffset={0}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: keyboardVisible ? -60 : 0 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", marginTop: Platform.OS === "ios" && keyboardVisible ? -60 : 0 }}
           keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           className="px-6 py-8"
         >
           <View className="items-center mb-8">
-            <View className="w-16 h-16 rounded-2xl bg-emerald-100 items-center justify-center mb-4">
+            <View className="w-16 h-16 rounded-2xl bg-brand-success-soft items-center justify-center mb-4">
               <Text className="text-2xl">🔐</Text>
             </View>
             <Text className="text-xl font-bold text-brand-heading">Set your password</Text>
@@ -144,16 +146,16 @@ export default function SetPasswordScreen() {
                   key={i}
                   className={`flex-1 h-1.5 rounded-full ${
                     password.length === 0
-                      ? "bg-slate-200"
+                      ? "bg-brand-alt"
                       : i < strength
                         ? STRENGTH_BAR_COLORS[strength]
-                        : "bg-slate-200"
+                        : "bg-brand-alt"
                   }`}
                 />
               ))}
             </View>
             {password.length > 0 ? (
-              <Text className="text-xs text-slate-500 -mt-2 mb-3">
+              <Text className="text-xs text-brand-muted -mt-2 mb-3">
                 {STRENGTH_LABELS[strength]}
               </Text>
             ) : null}
@@ -166,7 +168,7 @@ export default function SetPasswordScreen() {
               secure={!show}
             />
 
-            {error ? <Text className="text-xs text-rose-500 mb-3 -mt-1">{error}</Text> : null}
+            {error ? <Text className="text-xs text-brand-danger mb-3 -mt-1">{error}</Text> : null}
 
             <Button title="Save & Continue" size="lg" loading={submitting} onPress={handleSubmit} />
           </View>
@@ -181,14 +183,14 @@ function EyeIcon({ open }: { open: boolean }) {
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d={open ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z"}
-        stroke="#64748b"
+        stroke={COLORS.muted}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-        stroke="#64748b"
+        stroke={COLORS.muted}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"

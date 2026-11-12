@@ -1,4 +1,6 @@
-import { Modal, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, View } from "react-native";
+import { COLORS } from "../lib/theme";
+import { Text } from "./ui/Text";
 
 type Props = {
   visible: boolean;
@@ -35,7 +37,7 @@ export function ConfirmModal({
       <View
         style={{
           flex: 1,
-          backgroundColor: "rgba(28,28,24,0.45)",
+          backgroundColor: COLORS.overlay,
           alignItems: "center",
           justifyContent: "center",
           padding: 24,
@@ -45,15 +47,15 @@ export function ConfirmModal({
           style={{
             width: "100%",
             maxWidth: 360,
-            backgroundColor: "#FCF9F3",
+            backgroundColor: COLORS.surface,
             borderRadius: 20,
             padding: 20,
           }}
         >
-          <Text style={{ fontSize: 17, fontWeight: "700", color: "#1C1C18", marginBottom: 8 }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: COLORS.heading, marginBottom: 8 }}>
             {title}
           </Text>
-          <Text style={{ fontSize: 14, lineHeight: 20, color: "#59413F", marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, lineHeight: 20, color: COLORS.body, marginBottom: 20 }}>
             {message}
           </Text>
           <View style={{ flexDirection: "row", gap: 12 }}>
@@ -64,14 +66,14 @@ export function ConfirmModal({
                 flex: 1,
                 paddingVertical: 12,
                 borderRadius: 12,
-                backgroundColor: "#FFFFFF",
+                backgroundColor: COLORS.surface,
                 borderWidth: 1,
-                borderColor: "#E1BFBC",
+                borderColor: COLORS.border,
                 alignItems: "center",
                 opacity: busy ? 0.5 : 1,
               }}
             >
-              <Text style={{ fontSize: 14, fontWeight: "600", color: "#59413F" }}>{cancelLabel}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.body }}>{cancelLabel}</Text>
             </Pressable>
             <Pressable
               onPress={onConfirm}
@@ -80,12 +82,12 @@ export function ConfirmModal({
                 flex: 1,
                 paddingVertical: 12,
                 borderRadius: 12,
-                backgroundColor: destructive ? "#AD292F" : "#423238",
+                backgroundColor: destructive ? COLORS.primary : COLORS.accent,
                 alignItems: "center",
                 opacity: busy ? 0.5 : 1,
               }}
             >
-              <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.surface }}>
                 {busy ? "Working…" : confirmLabel}
               </Text>
             </Pressable>
