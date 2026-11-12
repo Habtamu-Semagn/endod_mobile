@@ -1,0 +1,85 @@
+# The Endod app: checks on every change, and builds/releases on demand.
+#
+# Checks (every pull request and push to main): typecheck, lint, brand colours.
+#
+# Release (Actions -> "Mobile" -> Run workflow), with EXPO_TOKEN and
+# GOOGLE_PLAY_SERVICE_ACCOUNT_JSON from the repository secrets:
+#   check            - the credentials work (Expo account, project, Play key); no build
+#   build            - Android production build on EAS (AAB, version bumped by EAS)
+#   build-and-submit - the same, then uploaded to the Play Store internal track
+# Builds are manual only: the Expo plan has a monthly build limit.
+name: Mobile
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to run
+        type: choice
+        options: [check, build, build-and-submit]
+        default: check
+
+concurrency:
+  group: mobile-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+
+  release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Play Store key (eas.json reads it from this path; never committed)
+        env:
+          KEY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          test -n "$KEY" || { echo "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is empty"; exit 1; }
+          printf '%s' "$KEY" > play-store-service-account.json
+          node -e '
+            const k = JSON.parse(require("fs").readFileSync("play-store-service-account.json", "utf8"));
+            if (k.type !== "service_account" || !k.client_email || !k.private_key) throw new Error("not a service account key");
+            console.log("Play key OK for project", k.project_id);'
+
+      - name: Expo account and project
+        run: |
+          eas whoami
+          eas project:info
+
+      - name: Build (Android, production)
+        if: inputs.action == 'build'
+        run: eas build --platform android --profile production --non-interactive --wait
+
+      - name: Build and submit to the Play Store (internal track)
+        if: inputs.action == 'build-and-submit'
+        run: eas build --platform android --profile production --non-interactive --wait --auto-submit
+
+      - name: Remove the Play key
+        if: always()
+        run: rm -f play-store-service-account.json
