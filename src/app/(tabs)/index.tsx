@@ -1,3 +1,4 @@
+import { refreshUnreadCount, useUnreadCount } from "../../lib/unread";
 import { useContentWidth, useScaledWidth } from "../../lib/layout";
 import { COLORS, TAB_CONTENT_PADDING } from "../../lib/theme";
 import { Image, Pressable, ScrollView, View } from "react-native";
@@ -32,7 +33,7 @@ export default function HomeScreen() {
   const { session } = useSession();
   const { t } = useI18n();
   const firstName = session?.firstName || "";
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = useUnreadCount();
   const [recordsCount, setRecordsCount] = useState(0);
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   useEffect(() => {
@@ -40,9 +41,7 @@ export default function HomeScreen() {
     api<Appointment[]>("users/me/appointments", { query: { limit: 200 } })
       .then((data) => { if (!cancelled) setAppointments(data); })
       .catch(() => undefined);
-    api<any>("users/me/inbox", { query: { limit: 1 } })
-      .then((data) => { if (!cancelled) setUnreadCount(data?.unread_count ?? 0); })
-      .catch(() => undefined);
+    void refreshUnreadCount();
     api<any>("users/me/history")
       .then((data) => { if (!cancelled) setRecordsCount((data?.items ?? []).length); })
       .catch(() => undefined);

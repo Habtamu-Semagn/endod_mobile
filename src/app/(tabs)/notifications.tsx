@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Svg, Path } from "react-native-svg";
 import { api, ApiError } from "../../lib/api";
+import { refreshUnreadCount } from "../../lib/unread";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { Bone, RowBones, Skeleton } from "../../components/skeleton";
 import { router } from "expo-router";
@@ -133,6 +134,8 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
       setNextCursor(page.next_cursor);
       setUnread({ total: page.unread_count, byCategory: page.unread_by_category });
       setLoadError("");
+      // Keep the header bell in step with this screen (after "mark all" too).
+      void refreshUnreadCount();
     } catch (error) {
       if (mine !== generation.current) return;
       setLoadError(error instanceof ApiError ? error.message : t("notifications.error.load"));
@@ -159,7 +162,7 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
       total: Math.max(0, u.total - 1),
       byCategory: { ...u.byCategory, [item.category]: Math.max(0, (u.byCategory[item.category] ?? 1) - 1) },
     }));
-    api(`users/me/inbox/${item.id}/read`, { method: "POST" }).catch(() => void load());
+    api(`users/me/inbox/${item.id}/read`, { method: "POST" }).then(() => refreshUnreadCount()).catch(() => void load());
   };
 
   const open = (item: InboxItem) => {
@@ -173,6 +176,7 @@ export default function NotificationsScreen({ onOpen = (nav: string) => {
     try {
       await api(`users/me/inbox/${item.id}`, { method: "DELETE" });
       setItems((list) => list?.filter((n) => n.id !== item.id) ?? null);
+      void refreshUnreadCount();
       if (!item.read) {
         setUnread((u) => ({
           total: Math.max(0, u.total - 1),

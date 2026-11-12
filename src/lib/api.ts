@@ -44,6 +44,8 @@ export function getAuthToken() {
 }
 
 export async function api<T = any>(path: string, options: any = {}): Promise<T> {
+  // A request started just before sign-out still goes out signed in.
+  const tokenAtCall = authToken;
   await ensureTokenLoaded();
 
   const method = (options.method ?? "GET").toUpperCase();
@@ -52,7 +54,8 @@ export async function api<T = any>(path: string, options: any = {}): Promise<T> 
 
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
-  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+  const token = authToken ?? tokenAtCall;
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   let response: Response;
   try {

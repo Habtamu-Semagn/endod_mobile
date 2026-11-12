@@ -9,8 +9,11 @@ import { api, ApiError, passwordProblem, setAuthToken } from "../../lib/api";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { Bone, FieldBones, Skeleton } from "../../components/skeleton";
 import { Select } from "../../components/Select";
-import { Passkey } from "react-native-passkey";
+import { passkeysSupported, registerPasskey, setDeviceHasPasskey } from "../../lib/passkeys";
 import { PasskeyModal } from "../../components/PasskeyModal";
+import { usePasswordPrompt } from "../../components/PasswordPrompt";
+import { pushSwitchedOn, setPushSwitchedOn } from "../../lib/push";
+import * as Notifications from "expo-notifications";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { Text } from "../../components/ui/Text";
 import {
@@ -90,7 +93,7 @@ const STRENGTH_LABEL_KEYS: TranslationKey[] = [
 const STRENGTH_COLORS = ["text-brand-muted", "text-brand-danger", "text-brand-muted", "text-brand-heading", "text-brand-heading"];
 
 export default function SettingsScreen({ onToast = (title: string, message?: string) => Alert.alert(title, message), onProfileChange = () => {}, hideTitle }: Props) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const router = useRouter();
   const { signOut } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -126,6 +129,22 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
   const [passkeys, setPasskeys] = useState<any[]>([]);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [passkeyModalVisible, setPasskeyModalVisible] = useState(false);
+  const passwordPrompt = usePasswordPrompt();
+  // Push notifications on this phone: switched on here and allowed by the phone.
+  const [pushOn, setPushOn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([pushSwitchedOn(), Notifications.getPermissionsAsync()]).then(([on, permission]) => {
+      if (!cancelled) setPushOn(on && permission.granted);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  const changePush = async (value: boolean) => {
+    setPushOn(value);
+    const on = await setPushSwitchedOn(value, language);
+    setPushOn(on);
+    if (value && !on) onToast(t("settings.privacy.push.label"), t("settings.privacy.push.denied"));
+  };
   const [deleteDataModalVisible, setDeleteDataModalVisible] = useState(false);
   const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
@@ -192,38 +211,31 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
     return () => { cancelled = true; };
   }, [applyProfile, loadHealth, t]);
 
+  const reloadPasskeys = async () => {
+    const d = await api<{ passkeys: any[] }>("users/me/passkeys");
+    const list = d?.passkeys ?? [];
+    setPasskeys(list);
+    if (list.length === 0) await setDeviceHasPasskey(false);
+  };
+
   const addPasskey = async () => {
-    if (!Passkey.isSupported()) {
+    if (!passkeysSupported()) {
       onToast("Passkeys", "This device doesn't support passkeys.");
       return;
     }
     setPasskeyBusy(true);
     try {
-      let opts: any;
-      try {
-        opts = await api("users/me/passkeys/registration/options", { method: "POST", body: {} });
-        console.log("passkey reg options:", JSON.stringify(opts));
-      } catch (e: any) {
-        if (e?.status === 428) {
-          const pwd = await new Promise<string>((resolve) => {
-            Alert.prompt?.("Recent sign-in required", "Enter your current password to add a passkey.", (v: string) => resolve(v ?? ""), "plain-text");
-          });
-          if (!pwd) { setPasskeyBusy(false); return; }
-          opts = await api("users/me/passkeys/registration/options", { method: "POST", body: { current_password: pwd } });
-        } else throw e;
+      let result = await registerPasskey();
+      if (!result.ok && result.failure.kind === "needs_password") {
+        const pwd = await passwordPrompt.ask("Confirm it's you", "Enter your current password to add a passkey.");
+        if (!pwd) return;
+        result = await registerPasskey(pwd);
       }
-      const credential = await Passkey.create(opts?.options ?? opts);
-      const name = (typeof navigator !== "undefined" ? (navigator as any).userAgent : "") || "This device";
-      await api("users/me/passkeys/registration/verify", { method: "POST", body: { credential, name } });
-      const d = await api<{ passkeys: any[] }>("users/me/passkeys");
-      setPasskeys(d?.passkeys ?? []);
-      onToast("Passkey added", "You can now sign in with this device.");
-    } catch (e: any) {
-      console.log("passkey add error:", JSON.stringify(e));
-      if (e?.error !== "UserCancelled" && !String(e?.message ?? "").toLowerCase().includes("cancel")) {
-        onToast("Could not add passkey", e?.message ?? "Try again.");
-      } else {
-        onToast("Passkey", "Passkey setup was cancelled.");
+      if (result.ok) {
+        await reloadPasskeys().catch(() => {});
+        onToast("Passkey added", "Next time, sign in with your fingerprint or face.");
+      } else if (result.failure.kind !== "cancelled") {
+        onToast("Could not add passkey", result.failure.message);
       }
     } finally {
       setPasskeyBusy(false);
@@ -237,28 +249,18 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
         text: "Remove", style: "destructive", onPress: async () => {
           setPasskeyBusy(true);
           try {
-            await api(`users/me/passkeys/${id}`, { method: "DELETE" });
-            setPasskeys((prev) => prev.filter((p) => p.id !== id));
-            onToast("Passkey removed", "Removed.");
-          } catch (e: any) {
-            if (e?.status === 428) {
-              // ask password
-              Alert.prompt?.("Recent sign-in required", "Enter your current password.", async (pwd: string) => {
-                if (!pwd) return;
-                setPasskeyBusy(true);
-                try {
-                  await api(`users/me/passkeys/${id}`, { method: "DELETE", body: { current_password: pwd } });
-                  setPasskeys((prev) => prev.filter((p) => p.id !== id));
-                  onToast("Passkey removed", "Removed.");
-                } catch (err: any) {
-                  onToast("Could not remove", err?.message ?? "Try again.");
-                } finally {
-                  setPasskeyBusy(false);
-                }
-              }, "plain-text");
-            } else {
-              onToast("Could not remove", e?.message ?? "Try again.");
+            try {
+              await api(`users/me/passkeys/${id}`, { method: "DELETE" });
+            } catch (e: any) {
+              if (!(e instanceof ApiError && e.status === 428)) throw e;
+              const pwd = await passwordPrompt.ask("Confirm it's you", "Enter your current password to remove this passkey.");
+              if (!pwd) return;
+              await api(`users/me/passkeys/${id}`, { method: "DELETE", body: { current_password: pwd } });
             }
+            await reloadPasskeys().catch(() => setPasskeys((prev) => prev.filter((p) => p.id !== id)));
+            onToast("Passkey removed", "That passkey can no longer sign in.");
+          } catch (e: any) {
+            onToast("Could not remove", e?.message ?? "Try again.");
           } finally {
             setPasskeyBusy(false);
           }
@@ -686,6 +688,8 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
               t("settings.privacy.consentSharing.label"), t("settings.privacy.consentSharing.hint"))}
             {toggle("pref-sms", profile?.preferences?.sms_notifications ?? false, (v) => void setNotification("sms_notifications", v),
               t("settings.privacy.sms.label"), t("settings.privacy.sms.hint"))}
+            {toggle("pref-push", pushOn, (v) => void changePush(v),
+              t("settings.privacy.push.label"), t("settings.privacy.push.hint"))}
           </View>
 
           {/* Password */}
@@ -859,7 +863,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
               ))}
             </View>
           )}
-          {Passkey.isSupported() ? (
+          {passkeysSupported() ? (
             <Pressable onPress={() => setPasskeyModalVisible(true)} disabled={passkeyBusy} className="w-full py-2.5 rounded-xl bg-brand-accent items-center">
               <Text className="text-sm font-semibold text-white">{passkeyBusy ? "Working…" : "Add passkey"}</Text>
             </Pressable>
@@ -899,6 +903,7 @@ export default function SettingsScreen({ onToast = (title: string, message?: str
         onClose={() => { if (!passkeyBusy) setPasskeyModalVisible(false); }}
         onConfirm={() => { setPasskeyModalVisible(false); void addPasskey(); }}
       />
+      {passwordPrompt.element}
       <Modal
         visible={deleteAccountVisible}
         transparent

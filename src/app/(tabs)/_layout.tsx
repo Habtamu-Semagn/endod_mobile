@@ -1,9 +1,8 @@
+import type { ComponentProps } from "react";
 import { Tabs } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, Pressable, useWindowDimensions, type ColorValue } from "react-native";
+import { View, Pressable, Text, type ColorValue } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { AppHeader } from "../../components/AppHeader";
-import { FittingText } from "../../components/ui/FittingText";
 import { useI18n } from "../../lib/i18n";
 import { COLORS, TAB_BAR_HEIGHT, TAB_BAR_MARGIN } from "../../lib/theme";
 
@@ -11,43 +10,17 @@ export const unstable_settings = {
   anchor: "index",
 };
 
+type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
+
 const INVERSE_SURFACE = COLORS.accentDeep;
 const INVERSE_ON_SURFACE = COLORS.surface;
 
-/** Number of tabs that share the bar. */
-const TAB_COUNT = 5;
-/** Horizontal padding inside the floating bar. */
-const TAB_BAR_PADDING = 6;
-/** Horizontal padding of a single tab. */
-const TAB_BUTTON_PADDING = 2;
-/** Font size of a tab label on every device. */
+/** Height of one tab; the dark "active" pill fills it. */
+const TAB_ITEM_HEIGHT = 56;
+/** Label size; a label too wide for its tab shrinks a little, it is never cut. */
 const TAB_LABEL_SIZE = 11;
-/**
- * Line box of a tab label.
- *
- * Plus Jakarta Sans needs ~1.26em (≈13.9dp at 11dp), so a 14dp line box is
- * the smallest height that renders every glyph — including the descenders of
- * "Booking" and "Appointments" — without clipping.
- */
-const TAB_LABEL_LINE_HEIGHT = 14;
-/**
- * Gap between the icon and its label.
- *
- * The icon wrapper already leaves 2dp of dead space below the 22dp glyph, so
- * the visual gap is 2dp on every item. No extra margin is needed.
- */
-const TAB_LABEL_GAP = 0;
-/**
- * Height of the wrapper that holds the 22dp icon.
- *
- * The default wrapper is 28dp tall, which leaves no room for the label inside
- * the button's 50dp content box. Trimming it to 26dp frees the 2dp the label
- * needs while the 22dp glyph stays at exactly the same y position (the 1dp
- * saved above and below is dead space).
- */
-const TAB_ICON_WRAPPER_HEIGHT = 26;
-/** Top padding that keeps the 22dp glyph at its original y position. */
-const TAB_ICON_TOP_PADDING = 9;
+/** Screens opened from elsewhere in the app that have no tab of their own. */
+const HIDDEN_TABS = new Set(["records", "notifications", "bills"]);
 
 const ICONS: Record<string, string[]> = {
   overview: [
@@ -92,96 +65,106 @@ function TabIcon({ name, color }: { name: string; color: ColorValue }) {
   );
 }
 
+/**
+ * The floating tab bar, drawn here instead of by the library.
+ *
+ * The library's bar sizes its items from the platform, the font and the safe
+ * area, so on some phones the labels were squeezed to a dot. Here every tab
+ * has a fixed height and an equal share of the width, and the phone's font
+ * size setting does not apply, so the bar looks the same on every device.
+ */
+function FloatingTabBar({ state, descriptors, emitter, navigateToTab, insets }: TabBarProps) {
+  const visible = state.routes.filter((route) => !HIDDEN_TABS.has(route.name));
+  const activeKey = state.routes[state.index]?.key;
+  return (
+    <View style={{ backgroundColor: COLORS.bg }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          height: TAB_BAR_HEIGHT,
+          paddingHorizontal: 6,
+          marginHorizontal: TAB_BAR_MARGIN,
+          marginBottom: TAB_BAR_MARGIN + insets.bottom,
+          backgroundColor: COLORS.surface,
+          borderRadius: 9999,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          shadowColor: COLORS.accentDeep,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.12,
+          shadowRadius: 20,
+          elevation: 10,
+        }}
+      >
+        {visible.map((route) => {
+          const focused = route.key === activeKey;
+          const { options } = descriptors[route.key];
+          const color = focused ? INVERSE_ON_SURFACE : COLORS.muted;
+          const label = typeof options.title === "string" ? options.title : route.name;
+          const onPress = () => {
+            const event = emitter.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+            if (!focused && !event.defaultPrevented) navigateToTab(route.key);
+          };
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              onLongPress={() => emitter.emit({ type: "tabLongPress", target: route.key })}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: TAB_ITEM_HEIGHT,
+                marginHorizontal: 2,
+                borderRadius: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: focused ? INVERSE_SURFACE : "transparent",
+              }}
+            >
+              {options.tabBarIcon?.({ focused, color, size: 22 })}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+                allowFontScaling={false}
+                style={{
+                  marginTop: 4,
+                  paddingHorizontal: 3,
+                  fontSize: TAB_LABEL_SIZE,
+                  lineHeight: TAB_LABEL_SIZE + 4,
+                  fontFamily: "PlusJakartaSans-Medium",
+                  color,
+                  textAlign: "center",
+                  includeFontPadding: false,
+                }}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const { t } = useI18n();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-
-  // The bar keeps the same proportions on every phone: the margin, the icon
-  // and the label size do not change with the width of the screen. A label
-  // that does not fit into its share of the bar is shrunk by `FittingText`
-  // instead of being cut off.
-  const tabWidth = (width - TAB_BAR_MARGIN * 2 - TAB_BAR_PADDING * 2) / TAB_COUNT;
-  const tabLabelWidth = Math.max(24, tabWidth - TAB_BUTTON_PADDING * 2);
 
   return (
     <View className="flex-1" style={{ backgroundColor: COLORS.bg }}>
       <Tabs
         backBehavior="initialRoute"
+        tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
           headerShown: true,
           header: () => <AppHeader />,
           headerStyle: { backgroundColor: COLORS.bg },
           headerShadowVisible: false,
-          tabBarActiveTintColor: INVERSE_ON_SURFACE,
-          tabBarInactiveTintColor: COLORS.muted,
-          tabBarActiveBackgroundColor: INVERSE_SURFACE,
-          // Always place the label under the icon, even in landscape or on a
-          // tablet, so the five items keep the same alignment everywhere.
-          tabBarLabelPosition: "below-icon",
-          tabBarShowLabel: true,
-          tabBarIconStyle: {
-            height: TAB_ICON_WRAPPER_HEIGHT,
-          },
-          tabBarButton: (props: any) => (
-            <Pressable {...props} style={[props.style, { borderRadius: 16, overflow: "hidden", minWidth: 0, paddingTop: TAB_ICON_TOP_PADDING, paddingBottom: 0, paddingHorizontal: TAB_BUTTON_PADDING, marginVertical: 4 }]} />
-          ),
-          tabBarLabel: ({ color, children }) => (
-            <FittingText
-              baseFontSize={TAB_LABEL_SIZE}
-              maxWidth={tabLabelWidth}
-              style={{
-                color,
-                fontWeight: "500",
-                fontFamily: "PlusJakartaSans-Medium",
-                marginTop: TAB_LABEL_GAP,
-                lineHeight: TAB_LABEL_LINE_HEIGHT,
-                textAlign: "center",
-                includeFontPadding: false,
-                minWidth: 0,
-                flexShrink: 1,
-              }}
-            >
-              {children}
-            </FittingText>
-          ),
-          tabBarStyle: {
-            backgroundColor: COLORS.surface,
-            borderTopWidth: 0,
-            paddingVertical: 6,
-            paddingHorizontal: TAB_BAR_PADDING,
-            height: TAB_BAR_HEIGHT,
-            marginHorizontal: TAB_BAR_MARGIN,
-            marginBottom: TAB_BAR_MARGIN + insets.bottom,
-            borderRadius: 9999,
-            borderWidth: 1,
-            borderColor: COLORS.border,
-            shadowColor: COLORS.accentDeep,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.12,
-            shadowRadius: 20,
-            elevation: 10,
-          },
-          tabBarLabelStyle: {
-            fontSize: TAB_LABEL_SIZE,
-            fontWeight: "500",
-            fontFamily: "PlusJakartaSans-Medium",
-            marginTop: TAB_LABEL_GAP,
-            lineHeight: TAB_LABEL_LINE_HEIGHT,
-            textAlign: "center",
-            includeFontPadding: false,
-          },
-          tabBarItemStyle: {
-            flex: 1,
-            minWidth: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 16,
-            overflow: "hidden",
-            paddingVertical: 0,
-            paddingHorizontal: 0,
-            marginHorizontal: 0,
-          },
         }}
       >
         <Tabs.Screen
@@ -228,21 +211,18 @@ export default function TabsLayout() {
           name="records"
           options={{
             title: "Records",
-            tabBarItemStyle: { display: "none" },
           }}
         />
         <Tabs.Screen
           name="notifications"
           options={{
             title: t("tab.notifications"),
-            tabBarItemStyle: { display: "none" },
           }}
         />
         <Tabs.Screen
           name="bills"
           options={{
             title: t("tab.bills"),
-            tabBarItemStyle: { display: "none" },
           }}
         />
       </Tabs>

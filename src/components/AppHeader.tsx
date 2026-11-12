@@ -1,12 +1,12 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image, Pressable, View } from "react-native";
+import { AppState, Image, Pressable, View } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { useI18n } from "../lib/i18n";
 import { Select } from "./Select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EmergencyModal } from "./EmergencyModal";
-import { NOTIFICATIONS } from "../lib/data";
+import { refreshUnreadCount, useUnreadCount } from "../lib/unread";
 import { COLORS } from "../lib/theme";
 import { Text } from "./ui/Text";
 
@@ -18,8 +18,21 @@ export function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { language, setLanguage, t } = useI18n();
-  const unread = NOTIFICATIONS.filter((n) => n.unread).length;
+  const unread = useUnreadCount();
   const [emergencyOpen, setEmergencyOpen] = useState(false);
+
+  // The bell's unread count, like the website's: re-read on every screen
+  // change and when the app comes back to the front. The notifications
+  // screen updates it too, the moment something is read.
+  useEffect(() => {
+    void refreshUnreadCount();
+  }, [pathname]);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void refreshUnreadCount();
+    });
+    return () => sub.remove();
+  }, []);
 
   const TITLES: Record<string, string> = {
     "/": "ENDOD",
@@ -72,6 +85,32 @@ export function AppHeader() {
         </Text>
       </View>
       <View className="flex-row items-center gap-1">
+        <Pressable
+          onPress={() => router.push("/(tabs)/notifications")}
+          accessibilityRole="button"
+          accessibilityLabel={unread > 0 ? `${t("tab.notifications")}, ${unread}` : t("tab.notifications")}
+          hitSlop={6}
+          style={{ width: 36, height: 32, alignItems: "center", justifyContent: "center", marginRight: 2 }}
+        >
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              stroke={segment === "notifications" ? ON_SURFACE : ON_SURFACE_VARIANT}
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+          {unread > 0 ? (
+            <View
+              style={{ position: "absolute", top: -2, right: 1, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, backgroundColor: COLORS.danger, borderWidth: 1.5, borderColor: COLORS.bg, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text allowFontScaling={false} style={{ color: COLORS.surface, fontSize: 9, lineHeight: 11, fontWeight: "700", includeFontPadding: false }}>
+                {unread > 9 ? "9+" : unread}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
           <Pressable
             onPress={() => setLanguage(language === "en" ? "am" : "en")}
             style={{ height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" }}

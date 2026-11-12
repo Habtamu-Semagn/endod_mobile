@@ -4,6 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View } from "react-native";
 import { SessionProvider } from "../lib/session";
 import { ToastProvider } from "../components/ui/Toast";
+import { PushBridge } from "../components/PushBridge";
 import { I18nProvider } from "../lib/i18n";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
@@ -51,6 +52,7 @@ export default function RootLayout() {
               keeps the status/navigation bar identical on every device, no
               matter which OEM theme or dark-mode setting the phone uses.
             */}
+            <PushBridge />
             <StatusBar style="dark" />
             <NavigationBar style="dark" />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.bg } }}>

@@ -19,6 +19,12 @@ type Props = {
   cancelLabel?: string;
   onClose: () => void;
   onConfirm: () => void;
+  /** Optional "Don't ask again" link under the buttons. */
+  neverLabel?: string;
+  onNever?: () => void;
+  /** The "all set" state: the description and a single Done button. */
+  done?: boolean;
+  doneLabel?: string;
 };
 
 export function PasskeyModal({
@@ -30,6 +36,10 @@ export function PasskeyModal({
   cancelLabel = "Cancel",
   onClose,
   onConfirm,
+  neverLabel,
+  onNever,
+  done = false,
+  doneLabel = "Done",
 }: Props) {
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -108,6 +118,15 @@ export function PasskeyModal({
               {description}
             </Text>
 
+            {done ? (
+              <Pressable
+                onPress={onClose}
+                accessibilityRole="button"
+                style={{ width: "100%", paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.heading, alignItems: "center" }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.surface }}>{doneLabel}</Text>
+              </Pressable>
+            ) : (
             <View style={{ width: "100%", flexDirection: "row", gap: 12 }}>
               <Pressable
                 onPress={onClose}
@@ -144,6 +163,12 @@ export function PasskeyModal({
                 </Text>
               </Pressable>
             </View>
+            )}
+            {!done && neverLabel && onNever ? (
+              <Pressable onPress={onNever} disabled={busy} accessibilityRole="button" style={{ marginTop: 14, padding: 4 }}>
+                <Text style={{ fontSize: 12, color: COLORS.body, textDecorationLine: "underline" }}>{neverLabel}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>

@@ -29,6 +29,7 @@ import { Button, Card, Chip } from "../../components/ui";
 import { Field, Sheet } from "../../components/ui/Field";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Select } from "../../components/Select";
+import { BookingFilters } from "../../components/BookingFilters";
 import { useI18n, type TranslationKey } from "../../lib/i18n";
 import { useToast } from "../../components/ui/Toast";
 import { useSession } from "../../lib/session";
@@ -239,53 +240,38 @@ pts.forEach(function(p){ var m=L.marker([p.lat,p.lng]).addTo(map); m.on('click',
   return (
     <View className="flex-1 bg-brand-bg">
       <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={!mapTouching} contentContainerStyle={{ padding: 16, paddingBottom: TAB_CONTENT_PADDING }} keyboardShouldPersistTaps="handled">
-        {/* Search */}
-        <View className="bg-white p-4 rounded-2xl border border-brand-border mb-3" style={{ zIndex: 1000, elevation: 10 }}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search hospitals, specialty, location…"
-            className="w-full px-3 py-2 text-sm rounded-xl border border-brand-border text-brand-heading"
-            placeholderTextColor={COLORS.muted}
-          />
-          <View className="flex-row mt-3 flex-wrap gap-2 items-center">
-            <View>
-              <Select
-                dialog
-                value={department === "" ? t("booking.allSpecialties") : t((SPECIALTY_KEY[department] ?? "booking.allSpecialties") as TranslationKey)}
-                onValueChange={(v) => {
-                  if (v === t("booking.allSpecialties")) setDepartment("");
-                  else {
-                    const found = Object.entries(SPECIALTY_KEY).find(([, k]) => t(k as TranslationKey) === v);
-                    setDepartment(found ? found[0] : v);
-                  }
-                }}
-                options={[t("booking.allSpecialties"), ...SPECIALTY_FILTERS.slice(1).map((s) => t(SPECIALTY_KEY[s] as TranslationKey))]}
-              />
-            </View>
-            <View>
-              <Select
-                dialog
-                value={ownershipFilter === "all" ? t("booking.allFacilities") : ownershipFilter === "private" ? t("booking.private") : t("booking.public")}
-                onValueChange={(v) => setOwnershipFilter(v === t("booking.allFacilities") ? "all" : v === t("booking.private") ? "private" : "public")}
-                options={[t("booking.allFacilities"), t("booking.private"), t("booking.public")]}
-              />
-            </View>
-            <View>
-              <Select
-                dialog
-                value={sort === "name" ? t("booking.sortName") : t("booking.sortDistance")}
-                onValueChange={(v) => setSort(v === t("booking.sortName") ? "name" : "distance")}
-                options={[t("booking.sortName"), t("booking.sortDistance")]}
-              />
-            </View>
-          </View>
-        </View>
+        {/* Search and filters */}
+        <BookingFilters
+          query={query}
+          onQuery={setQuery}
+          placeholder={t("booking.searchPlaceholder")}
+          clearLabel={t("booking.clearSearch")}
+          specialties={[
+            { value: "", label: t("booking.allSpecialties") },
+            ...SPECIALTY_FILTERS.slice(1).map((s) => ({ value: s, label: t((SPECIALTY_KEY[s] ?? "booking.allSpecialties") as TranslationKey) })),
+          ]}
+          specialty={department}
+          onSpecialty={setDepartment}
+          ownership={[
+            { value: "all", label: t("booking.filter.all") },
+            { value: "public", label: t("booking.public") },
+            { value: "private", label: t("booking.private") },
+          ]}
+          ownershipValue={ownershipFilter}
+          onOwnership={setOwnershipFilter}
+          sorts={[
+            { value: "name", label: t("booking.sort.az") },
+            { value: "distance", label: t("booking.sort.nearest") },
+          ]}
+          sort={sort}
+          onSort={(value) => {
+            setSort(value);
+            // "Nearest" again re-reads the location (the old "Use my location").
+            if (value === "distance" && sort === "distance") void fetchMyLocation();
+          }}
+        />
 
         {/* Map */}
-        <Pressable onPress={fetchMyLocation} className="mb-2 self-end">
-          <Text className="text-sm text-brand-primary underline">Use my location</Text>
-        </Pressable>
         <View
           onTouchStart={() => setMapTouching(true)}
           onTouchEnd={() => setMapTouching(false)}

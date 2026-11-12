@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text } from "../components/ui/Text";
 import {
   Image,
@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   View,
+  Alert,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,9 +17,17 @@ import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui";
 import { useSession } from "../lib/session";
 import { api } from "../lib/api";
-import { Passkey } from "react-native-passkey";
+import {
+  deviceHasPasskey,
+  neverOfferPasskey,
+  passkeysSupported,
+  pendingDeletion,
+  registerPasskey,
+  shouldOfferPasskey,
+  signInWithPasskey,
+  snoozePasskeyOffer,
+} from "../lib/passkeys";
 import { PasskeyModal } from "../components/PasskeyModal";
-import { Alert } from "react-native";
 import { COLORS } from "../lib/theme";
 
 export default function LoginScreen() {
@@ -43,37 +52,34 @@ export default function LoginScreen() {
     };
   }, []);
 
+  const supported = passkeysSupported();
+
   const handlePasskeySignIn = async () => {
     setError("");
     setPasskeySubmitting(true);
-    try {
-      const opts = await api("auth/passkey/options", { method: "POST" });
-      console.log("passkey options:", JSON.stringify(opts));
-      const challengeId = opts?.challenge_id;
-      const options = opts?.options;
-      const credential = await Passkey.get(options);
-      const data = await api("auth/passkey/verify", {
-        method: "POST",
-        body: { challenge_id: challengeId, credential },
-      });
-      const token = data?.access_token ?? null;
+    const result = await signInWithPasskey();
+    setPasskeySubmitting(false);
+    if (result.ok) {
+      const data = result.data;
       const profile = data?.profile ?? {};
-      signIn(profile?.phone ?? data?.dedan_user_id ?? "", token);
-      const onboarded = profile?.onboarding_complete;
-      router.replace(onboarded ? "/(tabs)" : "/onboarding");
-    } catch (e: any) {
-      console.log("passkey error:", JSON.stringify(e));
-      if (e?.error === "UserCancelled" || e?.message?.toLowerCase().includes("cancel")) {
-        // dismissed prompt — not an error
-      } else if (e?.error === "NoCredentials") {
-        setError("No passkey found on this device. Sign in with your phone number and password.");
-      } else {
-        setError(e?.message ?? e?.error ?? "We couldn't sign you in with that passkey. Try again, or use your phone number and password.");
-      }
-    } finally {
-      setPasskeySubmitting(false);
+      signIn(profile?.phone ?? data?.dedan_user_id ?? "", data?.access_token ?? null);
+      router.replace(profile?.onboarding_complete ? "/(tabs)" : "/onboarding");
+    } else if (result.failure.kind !== "cancelled") {
+      setError(result.failure.message);
     }
   };
+
+  // Like the website: on a phone that already has a passkey, ask for the
+  // fingerprint or face straight away, once; cancelling shows the normal form.
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (autoTried.current || !supported) return;
+    autoTried.current = true;
+    void deviceHasPasskey().then((has) => {
+      if (has) void handlePasskeySignIn();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async () => {
     setError("");
@@ -92,17 +98,18 @@ export default function LoginScreen() {
       signIn(phone.trim(), token);
       const onboarded = data?.profile?.onboarding_complete;
       const go = () => router.replace(onboarded ? "/(tabs)" : "/onboarding");
-      if (Passkey.isSupported()) {
+      if (await shouldOfferPasskey()) {
         setPendingNav(() => go);
+        setPasskeyDone(false);
         setShowPasskeyPrompt(true);
       } else {
         go();
       }
     } catch (e: any) {
-      const code = (e as any)?.details?.code;
-      if (e?.status === 409 && code === "account_pending_deletion") {
-        const restoreToken = (e as any)?.details?.restore_token;
-        const eraseAfter = (e as any)?.details?.erase_after;
+      const pending = pendingDeletion(e);
+      if (pending) {
+        const restoreToken = pending.restoreToken;
+        const eraseAfter = pending.eraseAfter?.slice(0, 10);
         Alert.alert(
           "Restore account?",
           `This account was deleted. You can restore it until ${eraseAfter ?? "it is erased"}.`,
@@ -133,26 +140,40 @@ export default function LoginScreen() {
   };
 
   const [passkeyPromptBusy, setPasskeyPromptBusy] = useState(false);
-  const handlePasskeyPromptConfirm = async () => {
-    setPasskeyPromptBusy(true);
-    try {
-      const opts = await api("users/me/passkeys/registration/options", { method: "POST", body: {} });
-      const credential = await Passkey.create(opts?.options ?? opts);
-      await api("users/me/passkeys/registration/verify", { method: "POST", body: { credential, name: "This device" } });
-    } catch (e) {
-      // ignore cancel/errors, still navigate
-    } finally {
-      setPasskeyPromptBusy(false);
-      setShowPasskeyPrompt(false);
-      if (pendingNav) pendingNav();
-      setPendingNav(null);
-    }
-  };
-  const handlePasskeyPromptClose = () => {
-    if (passkeyPromptBusy) return;
+  const [passkeyDone, setPasskeyDone] = useState(false);
+  const [passkeyPromptError, setPasskeyPromptError] = useState("");
+  const leavePrompt = () => {
     setShowPasskeyPrompt(false);
+    setPasskeyDone(false);
+    setPasskeyPromptError("");
     if (pendingNav) pendingNav();
     setPendingNav(null);
+  };
+  const handlePasskeyPromptConfirm = async () => {
+    setPasskeyPromptBusy(true);
+    setPasskeyPromptError("");
+    const result = await registerPasskey();
+    setPasskeyPromptBusy(false);
+    if (result.ok) {
+      setPasskeyDone(true);
+      setTimeout(leavePrompt, 3000);
+    } else if (result.failure.kind === "cancelled") {
+      // The phone's prompt was dismissed: close quietly, ask again next sign-in.
+      leavePrompt();
+    } else {
+      setPasskeyPromptError(result.failure.message);
+    }
+  };
+  // "Not now": don't ask again for 30 days on this phone.
+  const handlePasskeyPromptClose = () => {
+    if (passkeyPromptBusy) return;
+    if (!passkeyDone) void snoozePasskeyOffer();
+    leavePrompt();
+  };
+  const handlePasskeyPromptNever = () => {
+    if (passkeyPromptBusy) return;
+    void neverOfferPasskey();
+    leavePrompt();
   };
 
   return (
@@ -210,7 +231,7 @@ export default function LoginScreen() {
 
             <Button title="Sign In" variant="dark" size="lg" loading={submitting} onPress={handleSubmit} />
 
-            {Passkey.isSupported() ? (
+            {supported ? (
               <Pressable
                 onPress={handlePasskeySignIn}
                 disabled={passkeySubmitting}
@@ -234,7 +255,23 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <PasskeyModal visible={showPasskeyPrompt} busy={passkeyPromptBusy} title="Sign in faster next time?" description="Use your fingerprint or face to sign in faster next time." onConfirm={handlePasskeyPromptConfirm} onClose={handlePasskeyPromptClose} />
+      <PasskeyModal
+        visible={showPasskeyPrompt}
+        busy={passkeyPromptBusy}
+        done={passkeyDone}
+        title={passkeyDone ? "All set" : "Sign in faster next time"}
+        description={
+          passkeyDone
+            ? "Next time, just use your fingerprint or face."
+            : passkeyPromptError || "Use your fingerprint, face or phone screen lock instead of your password."
+        }
+        confirmLabel="Confirm"
+        cancelLabel="Not now"
+        neverLabel="Don't ask again"
+        onConfirm={handlePasskeyPromptConfirm}
+        onClose={handlePasskeyPromptClose}
+        onNever={handlePasskeyPromptNever}
+      />
     </SafeAreaView>
   );
 }
