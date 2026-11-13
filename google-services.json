@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "241307923213",
+    "project_id": "endod-2b294",
+    "storage_bucket": "endod-2b294.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:241307923213:android:c9bf01ac13885a0215b644",
+        "android_client_info": {
+          "package_name": "com.endod.health"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCt6I4Hlec7OJijWaOT45-ugTzx_iKe6YQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
