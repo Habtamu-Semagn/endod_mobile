@@ -14,7 +14,6 @@ import { useState, useRef, useCallback } from "react";
 import { captureRef } from "react-native-view-shot";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import * as MediaLibrary from "expo-media-library/legacy";
 import * as FileSystem from "expo-file-system/legacy";
 import Svg, { Path, Circle } from "react-native-svg";
 import QRCode from "react-native-qrcode-svg";
